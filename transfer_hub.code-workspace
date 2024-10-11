@@ -1,0 +1,12 @@
+{
+  "folders": [
+	{
+		"name": "transfer_hub",
+		"path": "."
+	},
+	{
+		"path": "../../csv/fotboll_test_csv"
+	}
+],
+  "settings": {}
+}
