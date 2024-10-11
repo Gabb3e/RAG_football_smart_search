@@ -7,7 +7,7 @@ from data_preprocessing import df
 schema = Schema(player_id=ID(stored=True), name=TEXT(stored=True), content=TEXT(stored=True))
 
 # Use the directory for writing the index
-index_dir = "/home/g2de/documents/programmering/projects/transfer_hub/football_index"
+index_dir = "football_index"
 
 # Ensure the directory exists
 if not os.path.exists(index_dir):
