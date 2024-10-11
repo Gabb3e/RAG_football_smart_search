@@ -7,7 +7,7 @@ import pandas as pd
 model = BartForConditionalGeneration.from_pretrained('facebook/bart-large')
 tokenizer = BartTokenizer.from_pretrained('facebook/bart-large')
 
-df = pd.read_csv('/home/g2de/documents/programmering/projects/transfer_hub/query_answer_data.csv')
+df = pd.read_csv('query_answer_data.csv')
 dataset = Dataset.from_pandas(df)
 
 # Tokenize the inputs and outputs

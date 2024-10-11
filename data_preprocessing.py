@@ -7,5 +7,5 @@ file_path = 'players.csv'
 df = pd.read_csv(file_path)
 
 # Print the first few rows of the DataFrame to check the data
-print(df.head())
-#print(df.columns)
+#print(df.head())
+print(df.columns)
