@@ -1,12 +1,19 @@
 from transformers import BartForConditionalGeneration, BartTokenizer, Trainer, TrainingArguments
 from datasets import Dataset
 import pandas as pd
+import torch
 
+# Check if a GPU is available and use it
+device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+print(f"Using device: {device}")
 
 # Load pre-trained BART model and tokenizer
 model = BartForConditionalGeneration.from_pretrained('facebook/bart-large')
+model.to(device) # Move the model to the device
+
 tokenizer = BartTokenizer.from_pretrained('facebook/bart-large')
 
+# Load the dataset from a CSV file
 df = pd.read_csv('query_answer_data.csv')
 dataset = Dataset.from_pandas(df)
 
@@ -22,11 +29,16 @@ def tokenize_function(examples):
     with tokenizer.as_target_tokenizer():
         labels = tokenizer(targets, max_length=150, truncation=True, padding="max_length")
 
-    model_inputs["labels"] = labels["input_ids"]
+    # Move input_ids and attention_mask to the device
+    model_inputs["input_ids"] = torch.tensor(model_inputs["input_ids"]).to(device)
+    model_inputs["attention_mask"] = torch.tensor(model_inputs["attention_mask"]).to(device)
+    # Move labels to the device
+    model_inputs["labels"] = torch.tensor(labels["input_ids"]).to(device)
+
     return model_inputs
 
 # Apply the tokenization
-tokenized_dataset = dataset.map(tokenize_function)
+tokenized_dataset = dataset.map(tokenize_function, batched=True, remove_columns=dataset.column_names)
 
 # Define training arguments
 training_args = TrainingArguments(
