@@ -22,10 +22,13 @@ def generate_response(retrieved_doc, user_query, model, tokenizer, device):
         attention_mask=attention_mask,
         num_beams=8,
         max_length=150, 
-        min_length=40, 
-        length_penalty=2.0,
+        min_length=40,
         early_stopping=True,
         no_repeat_ngram_size=3,
+        length_penalty=1.2,
+        temperature=0.8,
+        top_k=50,
+        top_p=0.9,
         forced_bos_token_id=tokenizer.bos_token_id
     )
     

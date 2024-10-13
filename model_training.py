@@ -42,12 +42,12 @@ tokenized_dataset.set_format("torch")
 # Define training arguments
 training_args = TrainingArguments(
     output_dir="./results",
-    evaluation_strategy="steps",
+    evaluation_strategy="epoch",
     learning_rate=1e-5,
     per_device_train_batch_size=4,
     per_device_eval_batch_size=4,
     num_train_epochs=10,
-    weight_decay=0.0001,
+    weight_decay=0.01,
     report_to="none"
 )
 
