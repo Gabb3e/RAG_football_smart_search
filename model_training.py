@@ -25,14 +25,13 @@ def tokenize_function(examples):
     # Tokenize inputs and targets (with truncation)
     model_inputs = tokenizer(inputs, max_length=512, truncation=True, padding="max_length")
 
-    # Tokenize the targets (answers)
-    with tokenizer.as_target_tokenizer():
-        labels = tokenizer(targets, max_length=150, truncation=True, padding="max_length")
+    # Tokenize the targets using 'text_target'
+    labels = tokenizer(text_target=targets, max_length=150, truncation=True, padding="max_length")
 
     model_inputs["labels"] = labels["input_ids"]
 
      # Convert all tensors to the same device
-    return {k: torch.tensor(v).to(device) for k, v in model_inputs.items()}
+    return model_inputs
 
 # Apply the tokenization
 tokenized_dataset = dataset.map(tokenize_function, batched=True, remove_columns=dataset.column_names)
