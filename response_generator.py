@@ -20,7 +20,7 @@ def generate_response(retrieved_doc, user_query, model, tokenizer, device):
     summary_ids = model.generate(
         input_ids=input_ids, 
         attention_mask=attention_mask,
-        num_beams=4,
+        num_beams=8,
         max_length=150, 
         min_length=40, 
         length_penalty=2.0,
