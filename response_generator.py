@@ -1,5 +1,3 @@
-import torch
-
 # Function to generate a response based on the query and retrieved document
 def generate_response(retrieved_doc, user_query, model, tokenizer, device):
     if not retrieved_doc:
