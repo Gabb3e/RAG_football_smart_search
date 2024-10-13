@@ -1,19 +1,27 @@
-from model_training import model, tokenizer
+import torch
 
 # Function to generate a response based on the query and retrieved document
-def generate_response(retrieved_doc, user_query):
+def generate_response(retrieved_doc, user_query, model, tokenizer, device):
     if not retrieved_doc:
         return "No relevant documents found."
     
-    # Combine the query and the retrieved document
-    input_text = user_query + " " + retrieved_doc
+    # Tokenize the input
+    inputs = tokenizer(
+        user_query, 
+        max_length=512, 
+        truncation=True, 
+        padding="max_length", 
+        return_tensors="pt"
+    )
 
-    # Tokenize input text
-    inputs = tokenizer(input_text, return_tensors="pt", max_length=512, truncation=True)
+    # Move the inputs to the same device as the model
+    input_ids = inputs['input_ids'].to(device)
+    attention_mask = inputs['attention_mask'].to(device)
 
     # Generate a response
     summary_ids = model.generate(
-        inputs['input_ids'], 
+        input_ids=input_ids, 
+        attention_mask=attention_mask,
         max_length=150, 
         min_length=40, 
         length_penalty=2.0, 
