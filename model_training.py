@@ -9,6 +9,8 @@ print(f"Using device: {device}")
 
 # Load pre-trained BART model and tokenizer
 model = BartForConditionalGeneration.from_pretrained('facebook/bart-large')
+model.to(device)  # Move the model to the device (GPU if available)
+
 tokenizer = BartTokenizer.from_pretrained('facebook/bart-large')
 
 # Load the dataset from a CSV file
@@ -29,7 +31,8 @@ def tokenize_function(examples):
 
     model_inputs["labels"] = labels["input_ids"]
 
-    return model_inputs
+     # Convert all tensors to the same device
+    return {k: torch.tensor(v).to(device) for k, v in model_inputs.items()}
 
 # Apply the tokenization
 tokenized_dataset = dataset.map(tokenize_function, batched=True, remove_columns=dataset.column_names)
