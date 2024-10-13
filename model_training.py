@@ -9,8 +9,6 @@ print(f"Using device: {device}")
 
 # Load pre-trained BART model and tokenizer
 model = BartForConditionalGeneration.from_pretrained('facebook/bart-large')
-model.to(device) # Move the model to the device
-
 tokenizer = BartTokenizer.from_pretrained('facebook/bart-large')
 
 # Load the dataset from a CSV file
@@ -29,21 +27,20 @@ def tokenize_function(examples):
     with tokenizer.as_target_tokenizer():
         labels = tokenizer(targets, max_length=150, truncation=True, padding="max_length")
 
-    # Move input_ids and attention_mask to the device
-    model_inputs["input_ids"] = torch.tensor(model_inputs["input_ids"]).to(device)
-    model_inputs["attention_mask"] = torch.tensor(model_inputs["attention_mask"]).to(device)
-    # Move labels to the device
-    model_inputs["labels"] = torch.tensor(labels["input_ids"]).to(device)
+    model_inputs["labels"] = labels["input_ids"]
 
     return model_inputs
 
 # Apply the tokenization
 tokenized_dataset = dataset.map(tokenize_function, batched=True, remove_columns=dataset.column_names)
 
+# Convert the datasets to PyTorch format
+tokenized_dataset.set_format("torch")
+
 # Define training arguments
 training_args = TrainingArguments(
     output_dir="./results",
-    eval_strategy="no",
+    evaluation_strategy="no",
     learning_rate=2e-5,
     per_device_train_batch_size=4,
     per_device_eval_batch_size=4,
