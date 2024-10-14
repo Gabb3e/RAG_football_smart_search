@@ -1,4 +1,4 @@
-from transformers import BartForConditionalGeneration, BartTokenizer, Trainer, TrainingArguments
+from transformers import BartForConditionalGeneration, BartTokenizer, Trainer, TrainingArguments, EarlyStoppingCallback
 from datasets import Dataset
 import pandas as pd
 import torch
@@ -60,8 +60,6 @@ training_args = TrainingArguments(
     load_best_model_at_end=True,  # Load the best model at the end
     metric_for_best_model="eval_loss",
     greater_is_better=False,  # Minimize loss
-    evaluation_strategy="epoch", 
-    early_stopping_patience=3  # Stop if no improvement for 3 epochs
 )
 
 # Set up the Trainer
@@ -69,7 +67,8 @@ trainer = Trainer(
     model=model,
     args=training_args,
     train_dataset=tokenized_train_dataset,
-    eval_dataset=tokenized_eval_dataset
+    eval_dataset=tokenized_eval_dataset,
+    callbacks=[EarlyStoppingCallback(early_stopping_patience=3)]
 )
 
 # Start the fine-tuning
