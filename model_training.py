@@ -49,12 +49,19 @@ tokenized_eval_dataset.set_format("torch")
 training_args = TrainingArguments(
     output_dir="./results",
     eval_strategy="epoch",
-    learning_rate=1e-5,
+    learning_rate=5e-6,
     per_device_train_batch_size=4,
     per_device_eval_batch_size=4,
-    num_train_epochs=10,
+    num_train_epochs=20,
     weight_decay=0.01,
-    report_to="none"
+    report_to="none",
+    save_total_limit=2,  # Limit number of saved models
+    save_steps=500,      # Save checkpoint every 500 steps
+    load_best_model_at_end=True,  # Load the best model at the end
+    metric_for_best_model="eval_loss",
+    greater_is_better=False,  # Minimize loss
+    evaluation_strategy="epoch", 
+    early_stopping_patience=3  # Stop if no improvement for 3 epochs
 )
 
 # Set up the Trainer
