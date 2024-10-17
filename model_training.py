@@ -3,6 +3,7 @@ from datasets import Dataset
 import pandas as pd
 import torch
 from sklearn.model_selection import train_test_split
+import torch.nn as nn
 
 # Check if a GPU is available and use it
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
@@ -10,6 +11,15 @@ print(f"Using device: {device}")
 
 # Load pre-trained BART model and tokenizer
 model = BartForConditionalGeneration.from_pretrained('facebook/bart-large', ignore_mismatched_sizes=True)
+model.lm_head = nn.Linear(model.config.d_model, model.config.vocab_size)
+# Freeze all layers in the model except the output head (lm_head)
+for param in model.parameters():
+    param.requires_grad = False  # Freeze all parameters
+
+# Now, unfreeze only the last layer (output head) for fine-tuning
+for param in model.lm_head.parameters():
+    param.requires_grad = True  # Unfreeze the lm_head (output head)
+
 model.to(device)  # Move the model to the device (GPU if available)
 tokenizer = BartTokenizer.from_pretrained('facebook/bart-large')
 
@@ -50,13 +60,13 @@ training_args = TrainingArguments(
     output_dir="./results",
     eval_strategy="epoch",
     save_strategy="epoch",  
-    learning_rate=5e-4,
+    learning_rate=3e-5,
     per_device_train_batch_size=2,
     per_device_eval_batch_size=2,
     num_train_epochs=10,
     weight_decay=0.01,
     report_to="none",
-    save_total_limit=2,  # Limit number of saved models
+    save_total_limit=4,  # Limit number of saved models
     save_steps=500,      # Save checkpoint every 500 steps
     load_best_model_at_end=True,  # Load the best model at the end
     metric_for_best_model="eval_loss",
