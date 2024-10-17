@@ -27,9 +27,9 @@ def generate_response(retrieved_doc, user_query, model, tokenizer, device):
         no_repeat_ngram_size=4,
         length_penalty=2.0,
         do_sample=True,
-        temperature=0.7,
+        temperature=0.6,
         top_k=50,
-        top_p=0.9,
+        top_p=0.8,
         forced_bos_token_id=tokenizer.bos_token_id
     )
     
