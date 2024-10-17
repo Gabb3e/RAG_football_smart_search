@@ -9,7 +9,7 @@ device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 print(f"Using device: {device}")
 
 # Load pre-trained BART model and tokenizer
-model = BartForConditionalGeneration.from_pretrained('facebook/bart-large')
+model = BartForConditionalGeneration.from_pretrained('facebook/bart-large', ignore_mismatched_sizes=True)
 model.to(device)  # Move the model to the device (GPU if available)
 tokenizer = BartTokenizer.from_pretrained('facebook/bart-large')
 
@@ -53,7 +53,7 @@ training_args = TrainingArguments(
     learning_rate=5e-4,
     per_device_train_batch_size=2,
     per_device_eval_batch_size=2,
-    num_train_epochs=40,
+    num_train_epochs=10,
     weight_decay=0.01,
     report_to="none",
     save_total_limit=2,  # Limit number of saved models
