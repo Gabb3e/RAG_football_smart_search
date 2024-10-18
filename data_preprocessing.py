@@ -37,7 +37,7 @@ df_cleaned.replace(to_replace="advertisement", value="", regex=True, inplace=Tru
 
 # Print the first few rows of the DataFrame to check the data
 #print(df.head())
-print(df_cleaned.head())
+#print(df_cleaned.head())
 print(df_cleaned.columns)
 print(df_cleaned.shape)
 #print(df_cleaned.info())

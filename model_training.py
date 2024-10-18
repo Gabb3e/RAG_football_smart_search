@@ -38,17 +38,25 @@ eval_dataset = Dataset.from_pandas(eval_df)
 
 # Tokenize the inputs and outputs
 def tokenize_function(examples):
-    inputs = (
-        examples['context'],
-        examples['question'],
-        )
-    targets = examples['answer']  # The answers (outputs)
+    model_inputs = tokenizer(
+        examples['context'], 
+        examples['question'], 
+        max_length=512, 
+        truncation=True, 
+        padding="max_length"
+    )
     
-    # Tokenize inputs and targets (with truncation)
-    model_inputs = tokenizer(inputs, max_length=512, truncation=True, padding="max_length")
-    labels = tokenizer(text_target=targets, max_length=150, truncation=True, padding="max_length")
+    # Tokenize 'answer' separately as the labels
+    labels = tokenizer(
+        text_target=examples['answer'], 
+        max_length=150, 
+        truncation=True, 
+        padding="max_length"
+    )
+    
+    # Add the labels (targets) to the model inputs
     model_inputs["labels"] = labels["input_ids"]
-
+    
     return model_inputs
 
 # Apply the tokenization to training and evaluation datasets
