@@ -29,8 +29,8 @@ model.to(device)  # Move the model to the device (GPU if available)
 tokenizer = BartTokenizer.from_pretrained('facebook/bart-large')
 
 # Load the Simple SQuAD dataset
-df_squad = pd.read_csv('/csv/simple_squad.csv')
-
+df_squad = pd.read_csv('csv/simple_squad.csv')
+print(df_squad.columns)
 # Split the dataset into training and evaluation sets
 train_df, eval_df = train_test_split(df_squad, test_size=0.2)  # 80% train, 20% eval
 train_dataset = Dataset.from_pandas(train_df)
@@ -38,7 +38,7 @@ eval_dataset = Dataset.from_pandas(eval_df)
 
 # Tokenize the inputs and outputs
 def tokenize_function(examples):
-    inputs = examples['query']  # The queries (inputs)
+    inputs = examples['question']  # The queries (inputs)
     targets = examples['answer']  # The answers (outputs)
     
     # Tokenize inputs and targets (with truncation)

@@ -1,7 +1,7 @@
 import pandas as pd
 
 # Load the dataset from the file path
-file_path = 'players.csv'
+file_path = 'csv/players.csv' 
 
 # Read the CSV file into a pandas DataFrame
 df = pd.read_csv(file_path)
