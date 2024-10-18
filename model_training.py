@@ -22,7 +22,7 @@ for param in model.lm_head.parameters():
     param.requires_grad = True  # Unfreeze the lm_head (output head)
 
 # Unfreeze only the last few layers of the decoder for fine-tuning
-for param in model.model.decoder.layers[-3:].parameters():
+for param in model.model.decoder.layers[-6:].parameters():
     param.requires_grad = True  # Unfreeze the last 3 layers of the decoder
 
 model.to(device)  # Move the model to the device (GPU if available)
@@ -62,11 +62,11 @@ training_args = TrainingArguments(
     output_dir="./results",
     eval_strategy="epoch",
     save_strategy="epoch",  
-    learning_rate=5e-6,
+    learning_rate=1e-6,
     per_device_train_batch_size=2,
     per_device_eval_batch_size=2,
     dataloader_num_workers=4,
-    num_train_epochs=20,
+    num_train_epochs=50,
     weight_decay=0.001,
     report_to="none",
     save_total_limit=4,  # Limit number of saved models
