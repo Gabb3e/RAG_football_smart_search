@@ -23,16 +23,16 @@ for param in model.lm_head.parameters():
 
 # Unfreeze only the last few layers of the decoder for fine-tuning
 for param in model.model.decoder.layers[-6:].parameters():
-    param.requires_grad = True  # Unfreeze the last 3 layers of the decoder
+    param.requires_grad = True  # Unfreeze the last X layers of the decoder
 
 model.to(device)  # Move the model to the device (GPU if available)
 tokenizer = BartTokenizer.from_pretrained('facebook/bart-large')
 
-# Load the dataset from a CSV file
-df = pd.read_csv('query_answer_data.csv')
+# Load the Simple SQuAD dataset
+df_squad = pd.read_csv('/csv/simple_squad.csv')
 
 # Split the dataset into training and evaluation sets
-train_df, eval_df = train_test_split(df, test_size=0.2)  # 80% train, 20% eval
+train_df, eval_df = train_test_split(df_squad, test_size=0.2)  # 80% train, 20% eval
 train_dataset = Dataset.from_pandas(train_df)
 eval_dataset = Dataset.from_pandas(eval_df)
 
@@ -43,7 +43,6 @@ def tokenize_function(examples):
     
     # Tokenize inputs and targets (with truncation)
     model_inputs = tokenizer(inputs, max_length=512, truncation=True, padding="max_length")
-    # Tokenize the targets using 'text_target'
     labels = tokenizer(text_target=targets, max_length=150, truncation=True, padding="max_length")
     model_inputs["labels"] = labels["input_ids"]
 
@@ -59,22 +58,22 @@ tokenized_eval_dataset.set_format("torch")
 
 # Define training arguments
 training_args = TrainingArguments(
-    output_dir="./results",
+    output_dir="./results_squad",
     eval_strategy="epoch",
     save_strategy="epoch",  
     learning_rate=1e-6,
     per_device_train_batch_size=2,
     per_device_eval_batch_size=2,
     dataloader_num_workers=4,
-    num_train_epochs=50,
-    weight_decay=0.001,
+    num_train_epochs=20,
+    weight_decay=0.01,
+    save_total_limit=4,
+    save_steps=500,
+    gradient_accumulation_steps=4,
+    greater_is_better=False, 
+    load_best_model_at_end=True,
     report_to="none",
-    save_total_limit=4,  # Limit number of saved models
-    save_steps=500,      # Save checkpoint every 500 steps
-    load_best_model_at_end=True,  # Load the best model at the end
     metric_for_best_model="eval_loss",
-    greater_is_better=False,  # Minimize loss
-    gradient_accumulation_steps=4,  # Accumulate gradients over 4 steps
 )
 
 # Set up the Trainer
