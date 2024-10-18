@@ -38,7 +38,10 @@ eval_dataset = Dataset.from_pandas(eval_df)
 
 # Tokenize the inputs and outputs
 def tokenize_function(examples):
-    inputs = examples['question']  # The queries (inputs)
+    inputs = (
+        examples['context'],
+        examples['question'],
+        )
     targets = examples['answer']  # The answers (outputs)
     
     # Tokenize inputs and targets (with truncation)
