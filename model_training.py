@@ -46,13 +46,24 @@ def tokenize_function(examples):
         padding="max_length"
     )
     
-    # Tokenize 'answer' separately as the labels
-    labels = tokenizer(
-        text_target=examples['answer'], 
-        max_length=150, 
-        truncation=True, 
-        padding="max_length"
-    )
+    # Tokenize 'answer' (targets) and ensure that it is in string format
+    # Checking if 'answer' is a list or a single string
+    if isinstance(examples['answer'], list):
+        # If it’s a list, tokenize each element
+        labels = tokenizer(
+            text_target=[str(ans) for ans in examples['answer']], 
+            max_length=150, 
+            truncation=True, 
+            padding="max_length"
+        )
+    else:
+        # If it's a single string, tokenize it directly
+        labels = tokenizer(
+            text_target=str(examples['answer']), 
+            max_length=150, 
+            truncation=True, 
+            padding="max_length"
+        )
     
     # Add the labels (targets) to the model inputs
     model_inputs["labels"] = labels["input_ids"]
