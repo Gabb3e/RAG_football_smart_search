@@ -11,7 +11,7 @@ def query_retriever(user_query):
     return generate_response(retrieved_doc, user_query, model, tokenizer, device)
 
 # Example usage
-user_query = "Who are the players from Barcelona worth more than 60 million?"
+user_query = "how many stories tall is the main library at notre dame ?"
 response = query_retriever(user_query)
 print(response)
 
