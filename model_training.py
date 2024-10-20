@@ -16,6 +16,15 @@ metric_exact_match = load("exact_match")
 
 # Load pre-trained BART model and tokenizer
 model = BartForConditionalGeneration.from_pretrained('facebook/bart-large', ignore_mismatched_sizes=True)
+
+# Ensure the encoder and decoder token embeddings are properly initialized
+# In BART, embeddings are typically shared between the encoder and decoder
+if model.config.tie_word_embeddings:
+    model.model.encoder.embed_tokens = model.model.decoder.embed_tokens  # Sharing the embeddings between encoder and decoder
+else:
+    # If they are not shared, initialize both embeddings
+    model.model.encoder.embed_tokens.weight = nn.Parameter(model.model.decoder.embed_tokens.weight.clone())
+
 model.lm_head = nn.Linear(model.config.d_model, model.config.vocab_size)
 
 for param in model.parameters(): # Freeze all layers in the model except the output head (lm_head)
@@ -32,9 +41,11 @@ tokenizer = BartTokenizer.from_pretrained('facebook/bart-large')
 df_squad = pd.read_csv('csv/simple_squad.csv')
 #print(df_squad.head())
 print(df_squad.columns)
+print(df_squad.shape)
 df_qa = pd.read_csv('csv/qa_data.csv')
 #print(df_qa.head())
 print(df_qa.columns)
+print(df_qa.shape)
 
 df_combined = pd.concat([df_squad, df_qa], ignore_index=True)
 
@@ -89,7 +100,6 @@ tokenized_eval_dataset.set_format("torch")
 def postprocess_text(preds, labels):
     preds = [pred.strip() for pred in preds]
     labels = [label.strip() for label in labels]
-
     return preds, labels
 
 # Custom compute_metrics function
