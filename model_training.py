@@ -83,15 +83,15 @@ training_args = TrainingArguments(
     output_dir="./results_squad",
     eval_strategy="epoch",
     save_strategy="epoch",  
-    learning_rate=1e-6,
+    learning_rate=2e-5,
     per_device_train_batch_size=2,
     per_device_eval_batch_size=2,
     dataloader_num_workers=4,
-    num_train_epochs=1,
+    num_train_epochs=5,
     weight_decay=0.01,
     save_total_limit=4,
     save_steps=500,
-    gradient_accumulation_steps=4,
+    gradient_accumulation_steps=3,
     greater_is_better=False, 
     load_best_model_at_end=True,
     report_to="none",
@@ -104,7 +104,7 @@ trainer = Trainer(
     args=training_args,
     train_dataset=tokenized_train_dataset,
     eval_dataset=tokenized_eval_dataset,
-    callbacks=[EarlyStoppingCallback(early_stopping_patience=3)]
+    callbacks=[EarlyStoppingCallback(early_stopping_patience=4)]
 )
 
 # Start the fine-tuning
