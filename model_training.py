@@ -1,28 +1,29 @@
 from transformers import BartForConditionalGeneration, BartTokenizer, Trainer, TrainingArguments, EarlyStoppingCallback
-from datasets import Dataset
-import pandas as pd
-import torch
 from sklearn.model_selection import train_test_split
+from datasets import load_metric
+from datasets import Dataset
 import torch.nn as nn
+import pandas as pd
+import numpy as np
+import torch
 
 # Check if a GPU is available and use it
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 print(f"Using device: {device}")
 
+# Load the evaluation metric
+metric_f1 = load_metric("f1")
+metric_exact_match = load_metric("exact_match")
+
 # Load pre-trained BART model and tokenizer
 model = BartForConditionalGeneration.from_pretrained('facebook/bart-large', ignore_mismatched_sizes=True)
 model.lm_head = nn.Linear(model.config.d_model, model.config.vocab_size)
 
-# Freeze all layers in the model except the output head (lm_head)
-for param in model.parameters():
+for param in model.parameters(): # Freeze all layers in the model except the output head (lm_head)
     param.requires_grad = False  # Freeze all parameters
-
-# Now, unfreeze only the last layer (output head) for fine-tuning
-for param in model.lm_head.parameters():
+for param in model.lm_head.parameters(): # Unfreeze only the last layer (output head) for fine-tuning
     param.requires_grad = True  # Unfreeze the lm_head (output head)
-
-# Unfreeze only the last few layers of the decoder for fine-tuning
-for param in model.model.decoder.layers[-6:].parameters():
+for param in model.model.decoder.layers[-6:].parameters(): # Unfreeze only the last few layers of the decoder for fine-tuning
     param.requires_grad = True  # Unfreeze the last X layers of the decoder
 
 model.to(device)  # Move the model to the device (GPU if available)
@@ -30,9 +31,14 @@ tokenizer = BartTokenizer.from_pretrained('facebook/bart-large')
 
 # Load the Simple SQuAD dataset
 df_squad = pd.read_csv('csv/simple_squad.csv')
-print(df_squad.columns)
+print(df_squad.head())
+df_qa = pd.read_csv('csv/qa_data.csv')
+print(df_qa.head())
+
+df_combined = pd.concat([df_squad, df_qa], ignore_index=True)
+
 # Split the dataset into training and evaluation sets
-train_df, eval_df = train_test_split(df_squad, test_size=0.2)  # 80% train, 20% eval
+train_df, eval_df = train_test_split(df_combined, test_size=0.2)  # 80% train, 20% eval
 train_dataset = Dataset.from_pandas(train_df)
 eval_dataset = Dataset.from_pandas(eval_df)
 
@@ -78,6 +84,33 @@ tokenized_eval_dataset = eval_dataset.map(tokenize_function, batched=True, remov
 tokenized_train_dataset.set_format("torch")
 tokenized_eval_dataset.set_format("torch")
 
+# Function to post-process model outputs to calculate metrics
+def postprocess_text(preds, labels):
+    preds = [pred.strip() for pred in preds]
+    labels = [label.strip() for label in labels]
+
+    return preds, labels
+
+# Custom compute_metrics function
+def compute_metrics(eval_pred):
+    preds, labels = eval_pred
+    decoded_preds = tokenizer.batch_decode(preds, skip_special_tokens=True)
+    decoded_labels = tokenizer.batch_decode(labels, skip_special_tokens=True)
+    
+    # Post-process predictions and labels
+    decoded_preds, decoded_labels = postprocess_text(decoded_preds, decoded_labels)
+    
+    # Exact Match (EM)
+    exact_match_score = metric_exact_match.compute(predictions=decoded_preds, references=decoded_labels)
+    
+    # F1 Score
+    f1_score = metric_f1.compute(predictions=decoded_preds, references=decoded_labels)
+    
+    return {
+        "exact_match": exact_match_score['exact_match'],
+        "f1": f1_score['f1']
+    }
+
 # Define training arguments
 training_args = TrainingArguments(
     output_dir="./results_squad",
@@ -88,14 +121,16 @@ training_args = TrainingArguments(
     per_device_eval_batch_size=2,
     dataloader_num_workers=4,
     num_train_epochs=5,
-    weight_decay=0.01,
-    save_total_limit=4,
+    weight_decay=0.1,
+    save_total_limit=2,
     save_steps=500,
     gradient_accumulation_steps=3,
     greater_is_better=False, 
     load_best_model_at_end=True,
-    report_to="none",
     metric_for_best_model="eval_loss",
+    logging_dir="./logs",
+    logging_steps=10,
+    report_to="none",
 )
 
 # Set up the Trainer

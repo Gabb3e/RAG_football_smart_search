@@ -11,7 +11,7 @@ def query_retriever(user_query):
     return generate_response(retrieved_doc, user_query, model, tokenizer, device)
 
 # Example usage
-user_query = "What was the market value of Claudio Bravo in the 2019 season?"
+user_query = "What was the market value of Claudio Bravo in the 2023 season?"
 response = query_retriever(user_query)
 print(response)
 

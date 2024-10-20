@@ -1,43 +1,61 @@
 import pandas as pd
 
-# Load the dataset from the file path
-file_path = 'csv/players.csv' 
+players_file_path = 'csv/players.csv'   # Load the dataset from the file path
+players_df = pd.read_csv(players_file_path) # Read the CSV file into a pandas DataFrame
 
-# Read the CSV file into a pandas DataFrame
-df = pd.read_csv(file_path)
+qa_file_path = 'csv/qa_data.csv'  # Load the query-answer dataset from the file path
+qa_df = pd.read_csv(qa_file_path)
 
 # List of unwanted words to remove
 unwanted_words = ['advertisement', 'comments', 'tags', 'facebook', 'twitter', 'instagram', 'advertisements']
 
-def clean_text_pandas(df, column):
-    # Convert text to lowercase
-    df[column] = df[column].str.lower()
+# Preprocess players data
+def preprocess_players_data(df):
+    # Convert text to lowercase and remove unwanted words using pandas' replace method
+    df['name'] = df['name'].str.lower()  # Convert text to lowercase
     
-    # Remove unwanted words using pandas' replace method
     for word in unwanted_words:
-        df[column] = df[column].str.replace(word, '', case=False)
+        df['name'] = df['name'].str.replace(word, '', case=False)
     
     # Remove extra spaces created by the removal of unwanted words
-    df[column] = df[column].str.strip()
-    df[column] = df[column].str.replace(' +', ' ')  # Replace multiple spaces with a single space
+    df['name'] = df['name'].str.strip()
+    df['name'] = df['name'].str.replace(' +', ' ')  # Replace multiple spaces with a single space
+
+    # Drop rows with missing important values
+    df_cleaned = df.dropna(subset=['first_name', 'foot', 'height_in_cm'])
+    df_cleaned = players_df.drop(columns=['image_url', 'url'])
     
+    # Convert market value and height to numeric, coercing errors
+    df_cleaned['market_value_in_eur'] = pd.to_numeric(df_cleaned['market_value_in_eur'], errors='coerce')
+    df_cleaned['height_in_cm'] = pd.to_numeric(df_cleaned['height_in_cm'], errors='coerce')
+    df_cleaned['highest_market_value_in_eur'] = pd.to_numeric(df_cleaned['highest_market_value_in_eur'], errors='coerce')
+    df_cleaned.replace(to_replace="advertisement", value="", regex=True, inplace=True)
+    
+    return df_cleaned
+
+# Preprocess query-answer data
+def preprocess_qa_data(df):
+    # Check if the necessary columns exist
+    if 'query' in df.columns and 'answer' in df.columns:
+        # Create a 'context' column by combining query and answer (if it's not already present)
+        df['context'] = df['query'] + " The answer is: " + df['answer']
+    
+    # Perform query-answer specific preprocessing (calculating lengths)
+    if 'query' in df.columns:
+        df["question_length"] = df["query"].apply(len)
+    if 'answer' in df.columns:
+        df["answer_length"] = df["answer"].apply(len)
+    if 'context' in df.columns:
+        df["context_length"] = df["context"].apply(len)
+
     return df
 
-df_cleaned = clean_text_pandas(df, 'name')
+# Clean both datasets
+cleaned_players_df = preprocess_players_data(players_df)
+cleaned_qa_df = preprocess_qa_data(qa_df)
 
-# 1. Handle missing values - for simplicity, let's drop rows with missing important values (like first name, foot)
-df_cleaned = df.dropna(subset=['first_name', 'foot', 'height_in_cm'])
-df_cleaned = df.drop(columns=['image_url', 'url'])
-
-df_cleaned['market_value_in_eur'] = pd.to_numeric(df_cleaned['market_value_in_eur'], errors='coerce')
-df_cleaned['highest_market_value_in_eur'] = pd.to_numeric(df_cleaned['highest_market_value_in_eur'], errors='coerce')
-df_cleaned['height_in_cm'] = pd.to_numeric(df_cleaned['height_in_cm'], errors='coerce')
-
-df_cleaned.replace(to_replace="advertisement", value="", regex=True, inplace=True)
-
-# Print the first few rows of the DataFrame to check the data
-#print(df.head())
-#print(df_cleaned.head())
-print(df_cleaned.columns)
-print(df_cleaned.shape)
+print(cleaned_players_df.head())
+print(cleaned_players_df.columns)
+print(cleaned_qa_df.head())
+print(cleaned_qa_df.columns)
 #print(df_cleaned.info())
