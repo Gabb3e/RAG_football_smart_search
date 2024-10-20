@@ -30,9 +30,11 @@ tokenizer = BartTokenizer.from_pretrained('facebook/bart-large')
 
 # Load the Simple SQuAD dataset
 df_squad = pd.read_csv('csv/simple_squad.csv')
-print(df_squad.head())
+#print(df_squad.head())
+print(df_squad.columns)
 df_qa = pd.read_csv('csv/qa_data.csv')
-print(df_qa.head())
+#print(df_qa.head())
+print(df_qa.columns)
 
 df_combined = pd.concat([df_squad, df_qa], ignore_index=True)
 

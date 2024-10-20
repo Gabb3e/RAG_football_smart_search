@@ -13,5 +13,6 @@ def query_retriever(user_query):
 # Example usage
 user_query = "What was the market value of Claudio Bravo in the 2023 season?"
 response = query_retriever(user_query)
-print(response)
+print("Q: " + user_query)
+print("A: " + response)
 

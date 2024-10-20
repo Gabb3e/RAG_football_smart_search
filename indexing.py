@@ -1,7 +1,13 @@
 import os
 from whoosh.index import create_in
 from whoosh.fields import Schema, TEXT, ID
-from data_preprocessing import cleaned_players_df
+from data_preprocessing import preprocess_players_data
+import pandas as pd
+
+# Load the players dataset
+players_file_path = 'csv/players.csv'
+players_df = pd.read_csv(players_file_path)
+cleaned_players_df = preprocess_players_data(players_df)
 
 # Define schema (fields to be indexed)
 schema = Schema(player_id=ID(stored=True), name=TEXT(stored=True), content=TEXT(stored=True))
