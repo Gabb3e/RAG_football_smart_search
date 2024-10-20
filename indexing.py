@@ -1,7 +1,7 @@
 import os
 from whoosh.index import create_in
 from whoosh.fields import Schema, TEXT, ID
-from data_preprocessing import df_cleaned
+from data_preprocessing import cleaned_players_df
 
 # Define schema (fields to be indexed)
 schema = Schema(player_id=ID(stored=True), name=TEXT(stored=True), content=TEXT(stored=True))
@@ -18,7 +18,7 @@ if not os.path.exists(os.path.join(index_dir, 'index')):
     ix = create_in(index_dir, schema)
     writer = ix.writer()
     
-    for index, row in df_cleaned.iterrows():
+    for index, row in cleaned_players_df.iterrows():
         full_name = f"{row['first_name']} {row['last_name']}"
         content = f"Player ID: {row['player_id']}, Name: {full_name}, " \
               f"Last Season: {row['last_season']}, Current Club ID: {row['current_club_id']}, " \
