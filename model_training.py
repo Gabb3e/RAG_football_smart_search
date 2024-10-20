@@ -1,10 +1,9 @@
 from transformers import BartForConditionalGeneration, BartTokenizer, Trainer, TrainingArguments, EarlyStoppingCallback
 from sklearn.model_selection import train_test_split
-from datasets import load_metric
 from datasets import Dataset
+from evaluate import load
 import torch.nn as nn
 import pandas as pd
-import numpy as np
 import torch
 
 # Check if a GPU is available and use it
@@ -12,8 +11,8 @@ device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 print(f"Using device: {device}")
 
 # Load the evaluation metric
-metric_f1 = load_metric("f1")
-metric_exact_match = load_metric("exact_match")
+metric_f1 = load("f1")
+metric_exact_match = load("exact_match")
 
 # Load pre-trained BART model and tokenizer
 model = BartForConditionalGeneration.from_pretrained('facebook/bart-large', ignore_mismatched_sizes=True)
