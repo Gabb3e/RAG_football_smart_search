@@ -43,12 +43,12 @@ def prepare_data(squad_df, players_df):
     # Load the Simple SQuAD dataset
     df_squad = pd.read_csv(squad_df)
     #print(df_squad.head())
-    print(df_squad.columns)
-    print(df_squad.shape)
+    #print(df_squad.columns)
+    #print(df_squad.shape)
     df_players = pd.read_csv(players_df)
     #print(df_players.head())
-    print(df_players.columns)
-    print(df_players.shape)
+    #print(df_players.columns)
+    #print(df_players.shape)
 
     df_combined = pd.concat([df_squad, df_players], ignore_index=True)
 
@@ -62,13 +62,14 @@ def prepare_data(squad_df, players_df):
 # Tokenize the inputs and outputs
 def tokenize_data(tokenizer, dataset):
     def tokenize_function(examples):
-        # Check if context, question, and answer are not None or empty
-        if examples['context'] is None or examples['question'] is None or examples['answer'] is None: # Handle potential None answers
-            raise ValueError("Context, question, or answer is missing!")
+        # Ensure all inputs are strings and not None
+        context = str(examples['context']) if examples['context'] is not None else ""
+        question = str(examples['question']) if examples['question'] is not None else ""
+        answer = str(examples['answer']) if examples['answer'] is not None else ""
         
         model_inputs = tokenizer(
-            examples['context'],
-            examples['question'],
+            context,
+            question,
             max_length=512,
             truncation=True,
             padding="max_length"
@@ -77,7 +78,7 @@ def tokenize_data(tokenizer, dataset):
         # Tokenize 'answer' (targets) and ensure that it is in string format
         if isinstance(examples['answer'], list):
             labels = tokenizer(
-                text_target=str(examples['answer']) if examples['answer'] is not None else "",  # Ensure answer is a string
+                text_target=answer,
                 max_length=150,
                 truncation=True,
                 padding="max_length"
