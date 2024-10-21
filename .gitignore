@@ -1,2 +1,4 @@
 /notes
 /transfer_hub.code-workspace
+__pycache__/
+.pyc

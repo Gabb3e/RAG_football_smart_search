@@ -43,4 +43,4 @@ if not os.path.exists(os.path.join(index_dir, 'index')):
                             content=content)
     writer.commit()
 
-print("index ok")
+print("Indexing completed!")

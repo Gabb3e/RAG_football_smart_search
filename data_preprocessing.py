@@ -54,8 +54,10 @@ def preprocess_qa_data(df):
 cleaned_players_df = preprocess_players_data(players_df)
 cleaned_qa_df = preprocess_qa_data(qa_df)
 
+print("Data cleaning completed!")
+
 #print(cleaned_players_df.head())
-print(cleaned_players_df.columns)
+#print(cleaned_players_df.columns)
 #print(cleaned_qa_df.head())
-print(cleaned_qa_df.columns)
+#print(cleaned_qa_df.columns)
 #print(df_cleaned.info())

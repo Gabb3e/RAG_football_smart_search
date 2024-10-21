@@ -16,8 +16,25 @@ def get_index():
             raise FileNotFoundError(f"Index directory '{index_dir}' does not exist.")
     return _cached_index
 
+def expand_query(query, synonym_dict):
+    words = query.lower().split()  # Split the query into words
+    expanded_words = []
+
+    for word in words:
+        # Replace the word with its synonym if it exists in the dictionary
+        if word in synonym_dict:
+            expanded_words.append(synonym_dict[word])
+        else:
+            expanded_words.append(word)
+
+    return " ".join(expanded_words)  # Return the expanded query
+
 # Searching for documents
-def search(query_string):
+def search(query_string, synonym_dict):
+    expanded_query = expand_query(query_string, synonym_dict)
+    print(f"Original query: {query_string}")
+    print(f"Expanded query: {expanded_query}")
+
     try:
         ix = open_dir(index_dir)
     except Exception as e:
@@ -25,8 +42,8 @@ def search(query_string):
         return ""
 
     # Parse the query string (search in name and content fields)
-    query_parser = MultifieldParser(["name", "content"], ix.schema)
-    query = query_parser.parse(query_string)
+    query_parser = MultifieldParser(["name^2", "content"], ix.schema)
+    query = query_parser.parse(expanded_query)
 
     # Search the index
     retrieved_docs = []
@@ -39,7 +56,19 @@ def search(query_string):
     # Return the combined results or an empty string if nothing is found
     return "\n".join(retrieved_docs) if retrieved_docs else "No results found for the query."
 
+#queries = [
+#    "Claudio Bravo",
+#    "goalkeeper Chile",
+#    "market value 2023",
+#    "tallest player",
+#    "highest market value",
+#]
+#
+#for query in queries:
+#    output = search(query)
+#    print(f"Results for '{query}':\n{output}\n")
+
 # Example user query
-user_query = "goalkeeper chile"
+user_query = "messi market value"
 output = search(user_query)
 print(output)
