@@ -79,14 +79,14 @@ def tokenize_data(tokenizer, dataset):
         if isinstance(examples['answer'], list):
             labels = tokenizer(
                 text_target=answer,
-                max_length=150,
+                max_length=512,
                 truncation=True,
                 padding="max_length"
             )
         else:
             labels = tokenizer(
                 text_target=str(examples['answer']),
-                max_length=150,
+                max_length=512,
                 truncation=True,
                 padding="max_length"
             )
@@ -176,6 +176,8 @@ def main():
 
     # Prepare the data
     train_dataset, eval_dataset = prepare_data('csv/simple_squad.csv', 'csv/players.csv')
+    print(train_dataset[:5])
+    print(eval_dataset[:5])
 
     # Tokenize the data
     tokenized_train_dataset = tokenize_data(tokenizer, train_dataset)
