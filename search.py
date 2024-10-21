@@ -70,5 +70,18 @@ def search(query_string, synonym_dict):
 
 # Example user query
 user_query = "messi market value"
-output = search(user_query)
+
+synonym_dict = {
+    "goalie": "goalkeeper",
+    "keeper": "goalkeeper",
+    "valuation": "market value",
+    "price": "market value",
+    "contract end": "contract expiration",
+    "worth": "market value",
+    "tallest": "highest",
+    "most expensive": "highest market value",
+    "expensive": "market value",
+}
+
+output = search(user_query, synonym_dict)
 print(output)

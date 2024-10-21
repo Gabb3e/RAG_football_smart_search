@@ -25,7 +25,7 @@ def main(device):
     train_model(model, tokenizer, tokenized_train_dataset, tokenized_eval_dataset)
 
     # Test query after training
-    user_query = "What was the market value of Claudio Bravo?"
+    user_query = "What is the market value of Claudio Bravo?"
     # Dictionary of football-related synonyms
     synonym_dict = {
         "goalie": "goalkeeper",
