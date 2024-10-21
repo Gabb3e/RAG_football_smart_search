@@ -19,6 +19,8 @@ index_dir = "football_index"
 if not os.path.exists(index_dir):
     os.mkdir(index_dir)
 
+print("Indexing started...")
+
 # Create index if not exists
 if not os.path.exists(os.path.join(index_dir, 'index')):
     ix = create_in(index_dir, schema)

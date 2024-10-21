@@ -14,9 +14,9 @@ print(f"Using device: {device}")
 metric_f1 = load("f1")
 metric_exact_match = load("exact_match")
 
-def load_model_and_tokenizer(model_path, tokenizer_path):
+def load_model_and_tokenizer(model_path='facebook/bart-large', tokenizer_path='facebook/bart-large'):
     # Load pre-trained BART model and tokenizer
-    model = BartForConditionalGeneration.from_pretrained('facebook/bart-large', ignore_mismatched_sizes=True)
+    model = BartForConditionalGeneration.from_pretrained(model_path, ignore_mismatched_sizes=True)
 
     # Ensure the encoder and decoder token embeddings are properly initialized
     if model.config.tie_word_embeddings:
@@ -35,7 +35,7 @@ def load_model_and_tokenizer(model_path, tokenizer_path):
         param.requires_grad = True  # Unfreeze the last X layers of the decoder
 
     model.to(device)  # Move the model to the device (GPU if available)
-    tokenizer = BartTokenizer.from_pretrained('facebook/bart-large')
+    tokenizer = BartTokenizer.from_pretrained(tokenizer_path)
 
     return model, tokenizer
 
