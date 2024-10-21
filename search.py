@@ -69,7 +69,7 @@ def search(query_string, synonym_dict):
 #    print(f"Results for '{query}':\n{output}\n")
 
 # Example user query
-user_query = "messi market value"
+user_query = "messi valuation"
 
 synonym_dict = {
     "goalie": "goalkeeper",

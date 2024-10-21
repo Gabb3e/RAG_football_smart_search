@@ -62,6 +62,10 @@ def prepare_data(squad_df, players_df):
 # Tokenize the inputs and outputs
 def tokenize_data(tokenizer, dataset):
     def tokenize_function(examples):
+        # Check if context, question, and answer are not None or empty
+        if examples['context'] is None or examples['question'] is None or examples['answer'] is None: # Handle potential None answers
+            raise ValueError("Context, question, or answer is missing!")
+        
         model_inputs = tokenizer(
             examples['context'],
             examples['question'],
@@ -73,7 +77,7 @@ def tokenize_data(tokenizer, dataset):
         # Tokenize 'answer' (targets) and ensure that it is in string format
         if isinstance(examples['answer'], list):
             labels = tokenizer(
-                text_target=[str(ans) for ans in examples['answer']],
+                text_target=str(examples['answer']) if examples['answer'] is not None else "",  # Ensure answer is a string
                 max_length=150,
                 truncation=True,
                 padding="max_length"
