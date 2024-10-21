@@ -1,6 +1,6 @@
 from search import search
 from response_generator import generate_response
-from model_training import load_model_and_tokenizer, prepare_data, tokenize_data, train_model
+from model_training import load_model_and_tokenizer, prepare_data, tokenize_data, train_model, device
 
 # Full pipeline function: search and generate response
 def query_retriever(user_query, synonym_dict, model, tokenizer, device):
@@ -44,4 +44,4 @@ def main(device):
     print(f"A: {response}")
 
 if __name__ == "__main__":
-    main()
+    main(device)
