@@ -106,16 +106,20 @@ def tokenize_data(tokenizer, dataset):
         end_positions = []
         
         for i in range(len(examples['answer'])):
+            context = examples['context'][i]
             answer = examples['answer'][i]
-            start_char = examples['start_positions'][i]
-            end_char = examples['end_positions'][i]
             
-            # Ensure that start_char and end_char are valid integers
-            if start_char is None or end_char is None:
+            # Try to find the answer's position in the context
+            start_char = context.find(answer)
+            if start_char == -1:
                 print(f"Warning: Missing start or end position for context: {examples['context'][i]}")
-                # Handle missing start or end positions by assigning default values (e.g., 0)
-                start_char = 0
-                end_char = 0
+                # If the answer is not found, skip this example
+                start_positions.append(0)  # or some default value
+                end_positions.append(0)    # or some default value
+                continue
+
+            end_char = start_char + len(answer)
+
             # Find the start and end token indices
             offset = tokenized_examples['offset_mapping'][i]
             start_token = 0
@@ -157,7 +161,7 @@ def train_model(model, tokenizer, train_dataset, eval_dataset):
         per_device_train_batch_size=2,
         per_device_eval_batch_size=2,
         dataloader_num_workers=4,
-        num_train_epochs=3,
+        num_train_epochs=1,
         weight_decay=0.01,
         save_total_limit=2,
         save_steps=500,
@@ -190,16 +194,18 @@ def train_model(model, tokenizer, train_dataset, eval_dataset):
 def compute_metrics(eval_pred, eval_dataset):
     predictions, labels = eval_pred.predictions, eval_pred.label_ids
     start_preds, end_preds = predictions
-    start_labels, end_labels = labels[:, 0], labels[:, 1]
-    
+
+    # Unpack the labels
+    start_labels, end_labels = labels
+
     # Convert predictions to start and end indices
     start_preds = start_preds.argmax(axis=1)
     end_preds = end_preds.argmax(axis=1)
-    
+
     # Initialize lists for decoded predictions and labels
     decoded_preds = []
     decoded_labels = []
-    
+
     for i in range(len(start_preds)):
         start = start_preds[i]
         end = end_preds[i]
@@ -210,11 +216,11 @@ def compute_metrics(eval_pred, eval_dataset):
             answer = ""
         decoded_preds.append(answer)
         decoded_labels.append(eval_dataset[i]['answer'])
-    
+
     # Compute exact match and F1 scores
     exact_match = metric_exact_match.compute(predictions=decoded_preds, references=decoded_labels)
     f1 = metric_f1.compute(predictions=decoded_preds, references=decoded_labels)
-    
+
     return {
         "exact_match": exact_match['exact_match'],
         "f1": f1['f1']
