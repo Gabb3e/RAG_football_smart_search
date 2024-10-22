@@ -126,8 +126,8 @@ def tokenize_data(tokenizer, dataset):
                 if start < end_char <= end:
                     end_token = idx
                     break
-            start_positions.append(start_token)
-            end_positions.append(end_token)
+            start_positions.append(int(start_token))
+            end_positions.append(int(end_token))
         
         tokenized_examples['start_positions'] = start_positions
         tokenized_examples['end_positions'] = end_positions
