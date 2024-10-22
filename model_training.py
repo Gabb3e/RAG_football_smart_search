@@ -110,6 +110,12 @@ def tokenize_data(tokenizer, dataset):
             start_char = examples['start_positions'][i]
             end_char = examples['end_positions'][i]
             
+            # Ensure that start_char and end_char are valid integers
+            if start_char is None or end_char is None:
+                print(f"Warning: Missing start or end position for context: {examples['context'][i]}")
+                # Handle missing start or end positions by assigning default values (e.g., 0)
+                start_char = 0
+                end_char = 0
             # Find the start and end token indices
             offset = tokenized_examples['offset_mapping'][i]
             start_token = 0
