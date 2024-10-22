@@ -3,7 +3,6 @@ from torch.nn.parallel import DistributedDataParallel as DDP
 from sklearn.model_selection import train_test_split
 from datasets import Dataset
 from evaluate import load
-import torch.distributed as dist
 import torch.nn as nn
 import pandas as pd
 import torch
@@ -27,8 +26,7 @@ def load_model_and_tokenizer(model_path='bert-base-uncased', tokenizer_path='ber
     model.to(device)  # Move the model to the device (GPU if available)
     # Wrap model in DistributedDataParallel for multi-GPU support
     if torch.cuda.device_count() > 1:
-        # Initialize the process group for multi-GPU distributed training
-        dist.init_process_group(backend='nccl')  # Use 'nccl' for GPU training
+        torch.distributed.init_process_group(backend='nccl')  # Multi-GPU backend
         model = DDP(model)
 
     return model, tokenizer
@@ -280,4 +278,4 @@ if __name__ == "__main__":
         main()
     finally:
         if torch.cuda.device_count() > 1:
-            dist.destroy_process_group()
+            torch.distributed.destroy_process_group()
