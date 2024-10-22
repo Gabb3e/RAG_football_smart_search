@@ -1,4 +1,4 @@
-from transformers import BartForConditionalGeneration, BartTokenizer, Trainer, TrainingArguments, EarlyStoppingCallback
+from transformers import BertForSequenceClassification,BertTokenizer, Trainer, TrainingArguments, EarlyStoppingCallback
 from sklearn.model_selection import train_test_split
 from datasets import Dataset
 from evaluate import load
@@ -14,9 +14,9 @@ print(f"Using device: {device}")
 metric_f1 = load("f1")
 metric_exact_match = load("exact_match")
 
-def load_model_and_tokenizer(model_path='facebook/bart-large', tokenizer_path='facebook/bart-large'):
+def load_model_and_tokenizer(model_path='bert-base-uncased', tokenizer_path='bert-base-uncased'):
     # Load pre-trained BART model and tokenizer
-    model = BartForConditionalGeneration.from_pretrained(model_path, ignore_mismatched_sizes=True)
+    model = BertForSequenceClassification.from_pretrained(model_path, ignore_mismatched_sizes=True)
 
     # Ensure the encoder and decoder token embeddings are properly initialized
     if model.config.tie_word_embeddings:
@@ -35,7 +35,7 @@ def load_model_and_tokenizer(model_path='facebook/bart-large', tokenizer_path='f
         param.requires_grad = True  # Unfreeze the last X layers of the decoder
 
     model.to(device)  # Move the model to the device (GPU if available)
-    tokenizer = BartTokenizer.from_pretrained(tokenizer_path)
+    tokenizer = BertTokenizer.from_pretrained(tokenizer_path)
 
     return model, tokenizer
 
@@ -45,15 +45,15 @@ def prepare_data(squad_df, players_df):
     #print(df_squad.head())
     #print(df_squad.columns)
     #print(df_squad.shape)
-    df_players = pd.read_csv(players_df)
+    #df_players = pd.read_csv(players_df)
     #print(df_players.head())
     #print(df_players.columns)
     #print(df_players.shape)
 
-    df_combined = pd.concat([df_squad, df_players], ignore_index=True)
+    #df_combined = pd.concat([df_squad, df_players], ignore_index=True)
 
     # Split the dataset into training and evaluation sets
-    train_df, eval_df = train_test_split(df_combined, test_size=0.2)  # 80% train, 20% eval
+    train_df, eval_df = train_test_split(df_squad, test_size=0.2)  # 80% train, 20% eval
     train_dataset = Dataset.from_pandas(train_df)
     eval_dataset = Dataset.from_pandas(eval_df)
 
@@ -74,22 +74,12 @@ def tokenize_data(tokenizer, dataset):
             truncation=True,
             padding="max_length"
         )
-
-        # Tokenize 'answer' (targets) and ensure that it is in string format
-        if isinstance(examples['answer'], list):
-            labels = tokenizer(
-                text_target=answer,
-                max_length=512,
-                truncation=True,
-                padding="max_length"
-            )
-        else:
-            labels = tokenizer(
-                text_target=str(examples['answer']),
-                max_length=512,
-                truncation=True,
-                padding="max_length"
-            )
+        labels = tokenizer(
+            text_target=answer,
+            max_length=512,
+            truncation=True,
+            padding="max_length"
+        )
 
         model_inputs["labels"] = labels["input_ids"]
 
@@ -112,8 +102,8 @@ def train_model(model, tokenizer, train_dataset, eval_dataset):
         eval_strategy="epoch",
         save_strategy="epoch",  
         learning_rate=2e-5,
-        per_device_train_batch_size=2,
-        per_device_eval_batch_size=2,
+        per_device_train_batch_size=8,
+        per_device_eval_batch_size=8,
         dataloader_num_workers=4,
         num_train_epochs=1,
         weight_decay=0.1,
