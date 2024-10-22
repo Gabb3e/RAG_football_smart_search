@@ -109,6 +109,12 @@ def tokenize_data(tokenizer, dataset):
             context = examples['context'][i]
             answer = examples['answer'][i]
             
+            # Check if context and answer are valid strings
+            if context is None or answer is None:
+                print(f"Warning: Skipping example with missing context or answer: {examples['context'][i]} or {examples['answer'][i]}")
+                start_positions.append(0)  # or some default value
+                end_positions.append(0)    # or some default value
+                continue
             # Try to find the answer's position in the context
             start_char = context.find(answer)
             if start_char == -1:
@@ -232,7 +238,7 @@ def main():
     model, tokenizer = load_model_and_tokenizer()
 
     # Prepare the data
-    train_dataset, eval_dataset = prepare_data('csv/simple_squad.csv', 'csv/qa_data.csv')
+    train_dataset, eval_dataset = prepare_data('csv/simple_squad.csv')
     print("Training Sample:", train_dataset[:5])
     print("Evaluation Sample:", eval_dataset[:5])
 

@@ -1,9 +1,0 @@
-context,question,answer,context_length,question_length,answer_length
-"Player: Miroslav Klose, Position: Centre-Forward, Current Club: Società Sportiva Lazio S.p.A., Market Value: 1000000 EUR, Born in: Poland on 1978-06-09.",What is the market value of Miroslav Klose?,1000000 EUR,20,8,2
-"Player: Miroslav Klose, Position: Centre-Forward, Current Club: Società Sportiva Lazio S.p.A., Market Value: 1000000 EUR, Born in: Poland on 1978-06-09.",Which club does Miroslav Klose currently play for?,Società Sportiva Lazio S.p.A.,20,8,4
-"Player: Miroslav Klose, Position: Centre-Forward, Current Club: Società Sportiva Lazio S.p.A., Market Value: 1000000 EUR, Born in: Poland on 1978-06-09.",What is the position of Miroslav Klose?,Centre-Forward,20,7,1
-"Player: Miroslav Klose, Position: Centre-Forward, Current Club: Società Sportiva Lazio S.p.A., Market Value: 1000000 EUR, Born in: Poland on 1978-06-09.",Where was Miroslav Klose born?,Poland,20,5,1
-"Player: Roman Weidenfeller, Position: Goalkeeper, Current Club: Borussia Dortmund, Market Value: 750000 EUR, Born in: Germany on 1980-08-06.",What is the market value of Roman Weidenfeller?,750000 EUR,18,8,2
-"Player: Roman Weidenfeller, Position: Goalkeeper, Current Club: Borussia Dortmund, Market Value: 750000 EUR, Born in: Germany on 1980-08-06.",Which club does Roman Weidenfeller currently play for?,Borussia Dortmund,18,8,2
-"Player: Roman Weidenfeller, Position: Goalkeeper, Current Club: Borussia Dortmund, Market Value: 750000 EUR, Born in: Germany on 1980-08-06.",What is the position of Roman Weidenfeller?,Goalkeeper,18,7,1
-"Player: Roman Weidenfeller, Position: Goalkeeper, Current Club: Borussia Dortmund, Market Value: 750000 EUR, Born in: Germany on 1980-08-06.",Where was Roman Weidenfeller born?,Germany,18,5,1
