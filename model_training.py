@@ -1,13 +1,18 @@
 from transformers import BertForQuestionAnswering, BertTokenizerFast, Trainer, TrainingArguments, EarlyStoppingCallback
+from torch.nn.parallel import DistributedDataParallel as DDP
 from sklearn.model_selection import train_test_split
 from datasets import Dataset
 from evaluate import load
+import torch.nn as nn
 import pandas as pd
 import torch
+import os
 
 # Check if a GPU is available and use it
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 print(f"Using device: {device}")
+
+os.environ["TOKENIZERS_PARALLELISM"] = "false"
 
 # Load the evaluation metric
 metric_f1 = load("f1")
@@ -19,8 +24,23 @@ def load_model_and_tokenizer(model_path='bert-base-uncased', tokenizer_path='ber
     tokenizer = BertTokenizerFast.from_pretrained(tokenizer_path)
 
     model.to(device)  # Move the model to the device (GPU if available)
+    # Wrap model in DistributedDataParallel for multi-GPU support
+    if torch.cuda.device_count() > 1:
+        model = DDP(model)
 
     return model, tokenizer
+
+# Preprocessing example function (ensure at least 1 dimension for scalars)
+def preprocess_output(output):
+    if output.ndim == 0:
+        output = output.unsqueeze(0)  # Ensure output is at least 1-dimensional
+    return output
+
+# Example of a loss function that returns a tensor, not a scalar
+def compute_loss(outputs, labels):
+    loss_fn = nn.CrossEntropyLoss()
+    loss = loss_fn(outputs, labels)
+    return preprocess_output(loss)  # Unsqueeze if necessary
 
 def prepare_player_qa(players_df):
     # Generate QA pairs from player information
@@ -143,10 +163,12 @@ def tokenize_data(tokenizer, dataset):
         tokenized_examples['end_positions'] = torch.tensor(end_positions, dtype=torch.long)
         tokenized_examples.pop('offset_mapping')  # Remove offset mapping as it's no longer needed
         
+        tokenized_examples['context'] = examples['context']
+
         return tokenized_examples
     
     # Apply the tokenization to the dataset
-    tokenized_dataset = dataset.map(tokenize_function, batched=True, remove_columns=dataset.column_names)
+    tokenized_dataset = dataset.map(tokenize_function, batched=True, keep_in_memory=True)
 
     # Explicitly cast the 'start_positions' and 'end_positions' to int64
     from datasets import Value
@@ -215,7 +237,7 @@ def compute_metrics(eval_pred, eval_dataset):
     for i in range(len(start_preds)):
         start = start_preds[i]
         end = end_preds[i]
-        context = eval_dataset[i]['context']
+        context = eval_dataset['context'][i]
         if start < len(context) and end < len(context):
             answer = context[start:end]
         else:
@@ -238,7 +260,7 @@ def main():
     model, tokenizer = load_model_and_tokenizer()
 
     # Prepare the data
-    train_dataset, eval_dataset = prepare_data('csv/simple_squad.csv')
+    train_dataset, eval_dataset = prepare_data('csv/simple_squad.csv', 'csv/qa_data.csv')
     print("Training Sample:", train_dataset[:5])
     print("Evaluation Sample:", eval_dataset[:5])
 

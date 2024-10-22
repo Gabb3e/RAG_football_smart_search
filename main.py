@@ -15,7 +15,7 @@ def main(device):
     model, tokenizer = load_model_and_tokenizer()
 
     # Prepare the data for training
-    train_dataset, eval_dataset = prepare_data('csv/simple_squad.csv', 'csv/players.csv')
+    train_dataset, eval_dataset = prepare_data('csv/simple_squad.csv', 'csv/players_squad_format.csv')
 
     # Tokenize the data
     tokenized_train_dataset = tokenize_data(tokenizer, train_dataset)
@@ -25,7 +25,7 @@ def main(device):
     train_model(model, tokenizer, tokenized_train_dataset, tokenized_eval_dataset)
 
     # Test query after training
-    user_query = "What is the market value of Claudio Bravo?"
+    user_query = "For which club did Miroslav Klose last play?"
     # Dictionary of football-related synonyms
     synonym_dict = {
         "goalie": "goalkeeper",
