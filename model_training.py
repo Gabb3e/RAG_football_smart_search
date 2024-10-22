@@ -8,6 +8,11 @@ import pandas as pd
 import torch
 import os
 
+os.environ['RANK'] = '0'
+os.environ['WORLD_SIZE'] = '1'
+os.environ['MASTER_ADDR'] = 'localhost'
+os.environ['MASTER_PORT'] = '12345'
+
 # Check if a GPU is available and use it
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 print(f"Using device: {device}")
@@ -26,8 +31,10 @@ def load_model_and_tokenizer(model_path='bert-base-uncased', tokenizer_path='ber
     model.to(device)  # Move the model to the device (GPU if available)
     # Wrap model in DistributedDataParallel for multi-GPU support
     if torch.cuda.device_count() > 1:
-        torch.distributed.init_process_group(backend='nccl')  # Multi-GPU backend
+        torch.distributed.init_process_group(backend='nccl', init_method='env://')  # Multi-GPU backend
         model = DDP(model)
+    else:
+        print("Single GPU detected. Skipping DDP initialization.")
 
     return model, tokenizer
 
