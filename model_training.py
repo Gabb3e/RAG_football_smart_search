@@ -3,6 +3,7 @@ from torch.nn.parallel import DistributedDataParallel as DDP
 from sklearn.model_selection import train_test_split
 from datasets import Dataset
 from evaluate import load
+import torch.distributed as dist
 import torch.nn as nn
 import pandas as pd
 import torch
@@ -26,6 +27,8 @@ def load_model_and_tokenizer(model_path='bert-base-uncased', tokenizer_path='ber
     model.to(device)  # Move the model to the device (GPU if available)
     # Wrap model in DistributedDataParallel for multi-GPU support
     if torch.cuda.device_count() > 1:
+        # Initialize the process group for multi-GPU distributed training
+        dist.init_process_group(backend='nccl')  # Use 'nccl' for GPU training
         model = DDP(model)
 
     return model, tokenizer
@@ -78,11 +81,10 @@ def prepare_data(squad_df, players_df):
     df_squad = pd.read_csv(squad_df)
     
     # Prepare the player data in QA format
-    players_df = pd.read_csv(players_df)
-    qa_df = prepare_player_qa(players_df)
+    df_players_squad = pd.read_csv(players_df)
     
     # Combine both datasets
-    df_combined = pd.concat([df_squad, qa_df], ignore_index=True)
+    df_combined = pd.concat([df_squad, df_players_squad], ignore_index=True)
     
     # Compute start and end positions if not already present
     if 'start_positions' not in df_combined.columns or 'end_positions' not in df_combined.columns:
@@ -260,7 +262,7 @@ def main():
     model, tokenizer = load_model_and_tokenizer()
 
     # Prepare the data
-    train_dataset, eval_dataset = prepare_data('csv/simple_squad.csv', 'csv/qa_data.csv')
+    train_dataset, eval_dataset = prepare_data('csv/simple_squad.csv', 'csv/players_squad_format.csv')
     print("Training Sample:", train_dataset[:5])
     print("Evaluation Sample:", eval_dataset[:5])
 
@@ -274,4 +276,8 @@ def main():
 
 # Execute the main function
 if __name__ == "__main__":
-    main()
+    try:
+        main()
+    finally:
+        if torch.cuda.device_count() > 1:
+            dist.destroy_process_group()
