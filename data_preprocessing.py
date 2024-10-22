@@ -3,7 +3,7 @@ import pandas as pd
 players_file_path = 'csv/players.csv'   # Load the dataset from the file path
 players_df = pd.read_csv(players_file_path) # Read the CSV file into a pandas DataFrame
 
-players_squad_format_path = 'csv/players_squad_format.csv'  # Load the query-answer dataset from the file path
+players_squad_format_path = 'csv/players_squad_format.csv'  # Load the question-answer dataset from the file path
 qa_df = pd.read_csv(players_squad_format_path)
 
 # List of unwanted words to remove
@@ -23,7 +23,7 @@ def preprocess_players_data(df):
     df['name'] = df['name'].str.replace(' +', ' ')  # Replace multiple spaces with a single space
 
     # Drop rows with missing important values
-    df_cleaned = df.dropna(subset=['first_name', 'foot', 'height_in_cm'])
+    df_cleaned = df.dropna(subset=['first_name', 'foot', 'height_in_cm']).copy()
     df_cleaned = players_df.drop(columns=['image_url', 'url'])
     
     # Convert market value and height to numeric, coercing errors
@@ -35,25 +35,28 @@ def preprocess_players_data(df):
     # Remove rows with any remaining nulls in critical fields
     df_cleaned = df_cleaned.dropna(subset=['market_value_in_eur', 'height_in_cm', 'highest_market_value_in_eur'])
 
+    # **Remove duplicates** to ensure the dataset is free of repeated rows
+    df_cleaned = df_cleaned.drop_duplicates()
+
     return df_cleaned
 
-# Preprocess query-answer data
+# Preprocess question-answer data
 def preprocess_players_squad_format_data(df):
     """
-    Preprocess the query-answer data by creating context, calculating lengths, 
+    Preprocess the question-answer data by creating context, calculating lengths, 
     and cleaning up text.
     """
-   # Ensure the 'query' and 'answer' columns exist and are not null
-    if 'query' in df.columns and 'answer' in df.columns:
-        df['query'] = df['query'].str.lower().str.strip()  # Lowercase and clean query text
+   # Ensure the 'question' and 'answer' columns exist and are not null
+    if 'question' in df.columns and 'answer' in df.columns:
+        df['question'] = df['question'].str.lower().str.strip()  # Lowercase and clean question text
         df['answer'] = df['answer'].str.lower().str.strip()  # Lowercase and clean answer text
 
-        # Create 'context' by combining the query and answer if it's not already present
-        df['context'] = df['query'] + " The answer is: " + df['answer']
+        # Create 'context' by combining the question and answer if it's not already present
+        df['context'] = df['question'] + " The answer is: " + df['answer']
     
-    # Perform query-answer specific preprocessing (calculating lengths)
-    if 'query' in df.columns:
-        df["question_length"] = df["query"].apply(len)
+    # Perform question-answer specific preprocessing (calculating lengths)
+    if 'question' in df.columns:
+        df["question_length"] = df["question"].apply(len)
     if 'answer' in df.columns:
         df["answer_length"] = df["answer"].apply(len)
     if 'context' in df.columns:
@@ -64,14 +67,14 @@ def preprocess_players_squad_format_data(df):
 
     # Drop duplicates and ensure there are no empty rows
     df.drop_duplicates(inplace=True)
-    df.dropna(subset=['query', 'answer', 'context'], inplace=True)
+    df.dropna(subset=['question', 'answer', 'context'], inplace=True)
 
     return df
 
 # Run preprocessing for both datasets
 def preprocess_data(players_file_path, players_squad_format_path):
     """
-    Main function to preprocess both player and query-answer datasets.
+    Main function to preprocess both player and question-answer datasets.
     """
     # Load the datasets
     players_df = pd.read_csv(players_file_path)
@@ -80,7 +83,7 @@ def preprocess_data(players_file_path, players_squad_format_path):
     # Clean the player data
     cleaned_players_df = preprocess_players_data(players_df)
     
-    # Clean the query-answer data
+    # Clean the question-answer data
     cleaned_qa_df = preprocess_players_squad_format_data(qa_df)
     
     # Save the cleaned datasets back to CSV (optional)
