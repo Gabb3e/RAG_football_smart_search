@@ -129,14 +129,20 @@ def tokenize_data(tokenizer, dataset):
             start_positions.append(int(start_token))
             end_positions.append(int(end_token))
         
-        tokenized_examples['start_positions'] = start_positions
-        tokenized_examples['end_positions'] = end_positions
+        tokenized_examples['start_positions'] = torch.tensor(start_positions, dtype=torch.long)
+        tokenized_examples['end_positions'] = torch.tensor(end_positions, dtype=torch.long)
         tokenized_examples.pop('offset_mapping')  # Remove offset mapping as it's no longer needed
         
         return tokenized_examples
     
     # Apply the tokenization to the dataset
     tokenized_dataset = dataset.map(tokenize_function, batched=True, remove_columns=dataset.column_names)
+
+    # Explicitly cast the 'start_positions' and 'end_positions' to int64
+    from datasets import Value
+    tokenized_dataset = tokenized_dataset.cast_column("start_positions", Value("int64"))
+    tokenized_dataset = tokenized_dataset.cast_column("end_positions", Value("int64"))
+
     tokenized_dataset.set_format(type='torch', columns=['input_ids', 'attention_mask', 'start_positions', 'end_positions'])
     
     return tokenized_dataset
