@@ -1,4 +1,4 @@
-from transformers import BertForQuestionAnswering, BertTokenizer, Trainer, TrainingArguments, EarlyStoppingCallback
+from transformers import BertForQuestionAnswering, BertTokenizerFast, Trainer, TrainingArguments, EarlyStoppingCallback
 from sklearn.model_selection import train_test_split
 from datasets import Dataset
 from evaluate import load
@@ -16,7 +16,7 @@ metric_exact_match = load("exact_match")
 def load_model_and_tokenizer(model_path='bert-base-uncased', tokenizer_path='bert-base-uncased'):
     # Load pre-trained BART model and tokenizer
     model = BertForQuestionAnswering.from_pretrained(model_path, ignore_mismatched_sizes=True)
-    tokenizer = BertTokenizer.from_pretrained(tokenizer_path)
+    tokenizer = BertTokenizerFast.from_pretrained(tokenizer_path)
 
     model.to(device)  # Move the model to the device (GPU if available)
 
