@@ -1,8 +1,7 @@
-from transformers import BertForSequenceClassification,BertTokenizer, Trainer, TrainingArguments, EarlyStoppingCallback
+from transformers import BertForQuestionAnswering, BertTokenizer, Trainer, TrainingArguments, EarlyStoppingCallback
 from sklearn.model_selection import train_test_split
 from datasets import Dataset
 from evaluate import load
-import torch.nn as nn
 import pandas as pd
 import torch
 
@@ -16,84 +15,125 @@ metric_exact_match = load("exact_match")
 
 def load_model_and_tokenizer(model_path='bert-base-uncased', tokenizer_path='bert-base-uncased'):
     # Load pre-trained BART model and tokenizer
-    model = BertForSequenceClassification.from_pretrained(model_path, ignore_mismatched_sizes=True)
-
-    # Ensure the encoder and decoder token embeddings are properly initialized
-    if model.config.tie_word_embeddings:
-        model.model.encoder.embed_tokens = model.model.decoder.embed_tokens  # Sharing the embeddings between encoder and decoder
-    else:
-        # If they are not shared, initialize both embeddings
-        model.model.encoder.embed_tokens.weight = nn.Parameter(model.model.decoder.embed_tokens.weight.clone())
-
-    model.lm_head = nn.Linear(model.config.d_model, model.config.vocab_size)
-
-    for param in model.parameters(): # Freeze all layers in the model except the output head (lm_head)
-        param.requires_grad = False  # Freeze all parameters
-    for param in model.lm_head.parameters(): # Unfreeze only the last layer (output head) for fine-tuning
-        param.requires_grad = True  # Unfreeze the lm_head (output head)
-    for param in model.model.decoder.layers[-6:].parameters(): # Unfreeze only the last few layers of the decoder for fine-tuning
-        param.requires_grad = True  # Unfreeze the last X layers of the decoder
-
-    model.to(device)  # Move the model to the device (GPU if available)
+    model = BertForQuestionAnswering.from_pretrained(model_path, ignore_mismatched_sizes=True)
     tokenizer = BertTokenizer.from_pretrained(tokenizer_path)
 
+    model.to(device)  # Move the model to the device (GPU if available)
+
     return model, tokenizer
+
+def prepare_player_qa(players_df):
+    # Generate QA pairs from player information
+    qa_pairs = []
+    for _, row in players_df.iterrows():
+        # Example: Create a question about the player's current club
+        context = (
+            f"{row['first_name']} {row['last_name']} is a football player born in {row['country_of_birth']} "
+            f"on {row['date_of_birth']}. He currently plays for {row['current_club_name']}."
+        )
+        question = f"What is the current club of {row['first_name']} {row['last_name']}?"
+        answer = row['current_club_name']
+        
+        # Find the start and end positions of the answer in the context
+        start_pos = context.find(answer)
+        end_pos = start_pos + len(answer) if start_pos != -1 else 0
+        
+        qa_pairs.append({
+            'context': context,
+            'question': question,
+            'answer': answer,
+            'context_length': len(context),
+            'question_length': len(question),
+            'answer_length': len(answer),
+            'start_positions': start_pos,
+            'end_positions': end_pos
+        })
+    
+    # Convert the list to a DataFrame
+    qa_df = pd.DataFrame(qa_pairs)
+    return qa_df
 
 def prepare_data(squad_df, players_df):
     # Load the Simple SQuAD dataset
     df_squad = pd.read_csv(squad_df)
-    #print(df_squad.head())
-    #print(df_squad.columns)
-    #print(df_squad.shape)
-    #df_players = pd.read_csv(players_df)
-    #print(df_players.head())
-    #print(df_players.columns)
-    #print(df_players.shape)
-
-    #df_combined = pd.concat([df_squad, df_players], ignore_index=True)
-
+    
+    # Prepare the player data in QA format
+    players_df = pd.read_csv(players_df)
+    qa_df = prepare_player_qa(players_df)
+    
+    # Combine both datasets
+    df_combined = pd.concat([df_squad, qa_df], ignore_index=True)
+    
+    # Compute start and end positions if not already present
+    if 'start_positions' not in df_combined.columns or 'end_positions' not in df_combined.columns:
+        def find_answer_positions(row):
+            context = row['context']
+            answer = row['answer']
+            start_pos = context.find(answer)
+            if start_pos == -1:
+                # Handle cases where the answer is not found
+                start_pos = 0
+                end_pos = 0
+            else:
+                end_pos = start_pos + len(answer)
+            return pd.Series({'start_positions': start_pos, 'end_positions': end_pos})
+        
+        positions = df_combined.apply(find_answer_positions, axis=1)
+        df_combined = pd.concat([df_combined, positions], axis=1)
+    
     # Split the dataset into training and evaluation sets
-    train_df, eval_df = train_test_split(df_squad, test_size=0.2)  # 80% train, 20% eval
+    train_df, eval_df = train_test_split(df_combined, test_size=0.2, random_state=42)  # 80% train, 20% eval
     train_dataset = Dataset.from_pandas(train_df)
     eval_dataset = Dataset.from_pandas(eval_df)
-
+    
     return train_dataset, eval_dataset
 
 # Tokenize the inputs and outputs
 def tokenize_data(tokenizer, dataset):
     def tokenize_function(examples):
-        # Ensure all inputs are strings and not None
-        context = str(examples['context']) if examples['context'] is not None else ""
-        question = str(examples['question']) if examples['question'] is not None else ""
-        answer = str(examples['answer']) if examples['answer'] is not None else ""
+        # Tokenize the inputs
+        tokenized_examples = tokenizer(
+            examples['context'],
+            examples['question'],
+            truncation=True,
+            padding="max_length",
+            max_length=512,
+            return_offsets_mapping=True
+        )
         
-        model_inputs = tokenizer(
-            context,
-            question,
-            max_length=512,
-            truncation=True,
-            padding="max_length"
-        )
-        labels = tokenizer(
-            text_target=answer,
-            max_length=512,
-            truncation=True,
-            padding="max_length"
-        )
-
-        model_inputs["labels"] = labels["input_ids"]
-
-        return model_inputs
-
-    # Apply the tokenization to training and evaluation datasets
-    tokenized_train_dataset = dataset.map(tokenize_function, batched=True, remove_columns=dataset.column_names)
-    tokenized_train_dataset.set_format("torch")
-
-    # Convert the datasets to PyTorch format
-    #tokenized_eval_dataset = eval_dataset.map(tokenize_function, batched=True, remove_columns=eval_dataset.column_names)
-    #tokenized_eval_dataset.set_format("torch")
-
-    return tokenized_train_dataset
+        # Initialize start and end positions
+        start_positions = []
+        end_positions = []
+        
+        for i in range(len(examples['answer'])):
+            answer = examples['answer'][i]
+            start_char = examples['start_positions'][i]
+            end_char = examples['end_positions'][i]
+            
+            # Find the start and end token indices
+            offset = tokenized_examples['offset_mapping'][i]
+            start_token = 0
+            end_token = 0
+            for idx, (start, end) in enumerate(offset):
+                if start <= start_char < end:
+                    start_token = idx
+                if start < end_char <= end:
+                    end_token = idx
+                    break
+            start_positions.append(start_token)
+            end_positions.append(end_token)
+        
+        tokenized_examples['start_positions'] = start_positions
+        tokenized_examples['end_positions'] = end_positions
+        tokenized_examples.pop('offset_mapping')  # Remove offset mapping as it's no longer needed
+        
+        return tokenized_examples
+    
+    # Apply the tokenization to the dataset
+    tokenized_dataset = dataset.map(tokenize_function, batched=True, remove_columns=dataset.column_names)
+    tokenized_dataset.set_format(type='torch', columns=['input_ids', 'attention_mask', 'start_positions', 'end_positions'])
+    
+    return tokenized_dataset
 
 def train_model(model, tokenizer, train_dataset, eval_dataset):
     # Define training arguments
@@ -102,18 +142,18 @@ def train_model(model, tokenizer, train_dataset, eval_dataset):
         eval_strategy="epoch",
         save_strategy="epoch",  
         learning_rate=2e-5,
-        per_device_train_batch_size=8,
-        per_device_eval_batch_size=8,
+        per_device_train_batch_size=2,
+        per_device_eval_batch_size=2,
         dataloader_num_workers=4,
-        num_train_epochs=1,
-        weight_decay=0.1,
+        num_train_epochs=3,
+        weight_decay=0.01,
         save_total_limit=2,
         save_steps=500,
         gradient_accumulation_steps=3,
         greater_is_better=False, 
         load_best_model_at_end=True,
-        metric_for_best_model="eval_loss",
-        logging_dir="./logs",
+        metric_for_best_model="f1",
+        logging_dir="./logs_qa",
         logging_steps=10,
         report_to="none",
     )
@@ -124,39 +164,48 @@ def train_model(model, tokenizer, train_dataset, eval_dataset):
         args=training_args,
         train_dataset=train_dataset,
         eval_dataset=eval_dataset,
-        callbacks=[EarlyStoppingCallback(early_stopping_patience=4)]
+        callbacks=[EarlyStoppingCallback(early_stopping_patience=4)],
+        compute_metrics=lambda eval_pred: compute_metrics(eval_pred, eval_dataset)
     )
     # Start the fine-tuning
     trainer.train()
 
     # Save the fine-tuned model for future use
-    model.save_pretrained("./fine_tuned_bart")
-    tokenizer.save_pretrained("./fine_tuned_bart")
+    model.save_pretrained("./fine_tuned_bert")
+    tokenizer.save_pretrained("./fine_tuned_bert")
 
 # Custom compute_metrics function
-def compute_metrics(eval_pred, tokenizer):
-    # Function to post-process model outputs to calculate metrics
-    def postprocess_text(preds, labels):
-        preds = [pred.strip() for pred in preds]
-        labels = [label.strip() for label in labels]
-        return preds, labels
+def compute_metrics(eval_pred, eval_dataset):
+    predictions, labels = eval_pred.predictions, eval_pred.label_ids
+    start_preds, end_preds = predictions
+    start_labels, end_labels = labels[:, 0], labels[:, 1]
     
-    preds, labels = eval_pred
-    decoded_preds = tokenizer.batch_decode(preds, skip_special_tokens=True)
-    decoded_labels = tokenizer.batch_decode(labels, skip_special_tokens=True)
+    # Convert predictions to start and end indices
+    start_preds = start_preds.argmax(axis=1)
+    end_preds = end_preds.argmax(axis=1)
     
-    # Post-process predictions and labels
-    decoded_preds, decoded_labels = postprocess_text(decoded_preds, decoded_labels)
+    # Initialize lists for decoded predictions and labels
+    decoded_preds = []
+    decoded_labels = []
     
-    # Exact Match (EM)
-    exact_match_score = metric_exact_match.compute(predictions=decoded_preds, references=decoded_labels)
+    for i in range(len(start_preds)):
+        start = start_preds[i]
+        end = end_preds[i]
+        context = eval_dataset[i]['context']
+        if start < len(context) and end < len(context):
+            answer = context[start:end]
+        else:
+            answer = ""
+        decoded_preds.append(answer)
+        decoded_labels.append(eval_dataset[i]['answer'])
     
-    # F1 Score
-    f1_score = metric_f1.compute(predictions=decoded_preds, references=decoded_labels)
+    # Compute exact match and F1 scores
+    exact_match = metric_exact_match.compute(predictions=decoded_preds, references=decoded_labels)
+    f1 = metric_f1.compute(predictions=decoded_preds, references=decoded_labels)
     
     return {
-        "exact_match": exact_match_score['exact_match'],
-        "f1": f1_score['f1']
+        "exact_match": exact_match['exact_match'],
+        "f1": f1['f1']
     }
 
 # Main execution function
@@ -165,9 +214,9 @@ def main():
     model, tokenizer = load_model_and_tokenizer()
 
     # Prepare the data
-    train_dataset, eval_dataset = prepare_data('csv/simple_squad.csv', 'csv/players.csv')
-    print(train_dataset[:5])
-    print(eval_dataset[:5])
+    train_dataset, eval_dataset = prepare_data('csv/simple_squad.csv', 'csv/qa_data.csv')
+    print("Training Sample:", train_dataset[:5])
+    print("Evaluation Sample:", eval_dataset[:5])
 
     # Tokenize the data
     tokenized_train_dataset = tokenize_data(tokenizer, train_dataset)
