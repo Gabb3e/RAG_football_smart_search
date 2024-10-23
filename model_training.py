@@ -50,17 +50,18 @@ def compute_loss(outputs, labels):
     loss = loss_fn(outputs, labels)
     return preprocess_output(loss)  # Unsqueeze if necessary
 
-def prepare_player_qa(players_df):
-    # Generate QA pairs from player information
+def prepare_player_qa(players_squad_df):
+    # Generate QA pairs from the players_squad_format.csv
     qa_pairs = []
-    for _, row in players_df.iterrows():
-        # Example: Create a question about the player's current club
-        context = (
-            f"{row['first_name']} {row['last_name']} is a football player born in {row['country_of_birth']} "
-            f"on {row['date_of_birth']}. He currently plays for {row['current_club_name']}."
-        )
-        question = f"What is the current club of {row['first_name']} {row['last_name']}?"
-        answer = row['current_club_name']
+    for _, row in players_squad_df.iterrows():
+        context = row['context']
+        question = row['question']
+        answer = row['answer']
+        
+        # Ensure context, question, and answer are valid strings
+        context = str(context) if pd.notnull(context) else ""
+        question = str(question) if pd.notnull(question) else ""
+        answer = str(answer) if pd.notnull(answer) else ""
         
         # Find the start and end positions of the answer in the context
         start_pos = context.find(answer)
@@ -81,16 +82,20 @@ def prepare_player_qa(players_df):
     qa_df = pd.DataFrame(qa_pairs)
     return qa_df
 
-def prepare_data(squad_df, players_df):
+def prepare_data(squad_df, players_squad_format_df):
     # Load the Simple SQuAD dataset
     df_squad = pd.read_csv(squad_df)
     
     # Prepare the player data in QA format
-    df_players_squad = pd.read_csv(players_df)
+    df_players_squad = pd.read_csv(players_squad_format_df)
     df_players_squad = prepare_player_qa(df_players_squad)
     
     # Combine both datasets
     df_combined = pd.concat([df_squad, df_players_squad], ignore_index=True)
+
+    # Ensure context and answer columns are valid strings and handle missing values
+    df_combined['context'] = df_combined['context'].fillna("").astype(str)
+    df_combined['answer'] = df_combined['answer'].fillna("").astype(str)
     
     # Compute start and end positions if not already present
     if 'start_positions' not in df_combined.columns or 'end_positions' not in df_combined.columns:
