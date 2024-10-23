@@ -82,6 +82,26 @@ def prepare_player_qa(players_squad_df):
     qa_df = pd.DataFrame(qa_pairs)
     return qa_df
 
+def find_answer_positions(row):
+    context = row['context']
+    answer = row['answer']
+
+    # Ensure context and answer are strings, replace NaN or None with empty strings
+    if not isinstance(context, str):
+        context = ""
+    if not isinstance(answer, str):
+        answer = ""
+
+    start_pos = context.find(answer)
+    if start_pos == -1:
+        # Handle cases where the answer is not found
+        start_pos = 0
+        end_pos = 0
+    else:
+        end_pos = start_pos + len(answer)
+    return pd.Series({'start_positions': start_pos, 'end_positions': end_pos})
+        
+        
 def prepare_data(squad_df, players_squad_format_df):
     # Load the Simple SQuAD dataset
     df_squad = pd.read_csv(squad_df)
@@ -97,34 +117,10 @@ def prepare_data(squad_df, players_squad_format_df):
     df_combined['context'] = df_combined['context'].fillna("").astype(str)
     df_combined['answer'] = df_combined['answer'].fillna("").astype(str)
     
-    # Compute start and end positions if not already present
-    if 'start_positions' not in df_combined.columns or 'end_positions' not in df_combined.columns:
-        def find_answer_positions(row):
-            context = row['context']
-            answer = row['answer']
-
-            # Ensure context and answer are strings, replace NaN or None with empty strings
-            if not isinstance(context, str):
-                context = ""
-            if not isinstance(answer, str):
-                answer = ""
-
-            start_pos = context.find(answer)
-            if start_pos == -1:
-                # Handle cases where the answer is not found
-                start_pos = 0
-                end_pos = 0
-            else:
-                end_pos = start_pos + len(answer)
-            return pd.Series({'start_positions': start_pos, 'end_positions': end_pos})
-        
-        positions = df_combined.apply(find_answer_positions, axis=1)
-        df_combined = pd.concat([df_combined, positions], axis=1)
-    
     # Compute start and end positions
     positions = df_combined.apply(find_answer_positions, axis=1)
     df_combined = pd.concat([df_combined, positions], axis=1)
-
+    
     # Split the dataset into training and evaluation sets
     train_df, eval_df = train_test_split(df_combined, test_size=0.2, random_state=42)  # 80% train, 20% eval
     train_dataset = Dataset.from_pandas(train_df)
