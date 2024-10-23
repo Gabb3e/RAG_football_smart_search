@@ -100,8 +100,7 @@ def find_answer_positions(row):
     else:
         end_pos = start_pos + len(answer)
     return pd.Series({'start_positions': start_pos, 'end_positions': end_pos})
-        
-        
+               
 def prepare_data(squad_df, players_squad_format_df):
     # Load the Simple SQuAD dataset
     df_squad = pd.read_csv(squad_df)
@@ -190,7 +189,12 @@ def tokenize_data(tokenizer, dataset):
         return tokenized_examples
     
     # Apply the tokenization to the dataset
-    tokenized_dataset = dataset.map(tokenize_function, batched=True, keep_in_memory=True)
+    tokenized_dataset = dataset.map(
+        tokenize_function, 
+        batched=True, 
+        batch_size=32, 
+        num_proc=8,
+        keep_in_memory=True),
 
     # Explicitly cast the 'start_positions' and 'end_positions' to int64
     from datasets import Value
@@ -208,20 +212,21 @@ def train_model(model, tokenizer, train_dataset, eval_dataset):
         eval_strategy="epoch",
         save_strategy="epoch",  
         learning_rate=2e-5,
-        per_device_train_batch_size=2,
-        per_device_eval_batch_size=2,
-        dataloader_num_workers=4,
+        per_device_train_batch_size=4,
+        per_device_eval_batch_size=4,
+        gradient_accumulation_steps=3,
+        dataloader_num_workers=8,
         num_train_epochs=1,
         weight_decay=0.01,
         save_total_limit=2,
         save_steps=500,
-        gradient_accumulation_steps=3,
+        fp16=True,
         greater_is_better=False, 
         load_best_model_at_end=True,
         remove_unused_columns=False,
-        metric_for_best_model="f1",
+        metric_for_best_model="eval_f1",
         logging_dir="./logs_qa",
-        logging_steps=10,
+        logging_steps=50,
         report_to="none",
     )
 
