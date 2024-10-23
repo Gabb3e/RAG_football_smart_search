@@ -218,6 +218,7 @@ def train_model(model, tokenizer, train_dataset, eval_dataset):
         gradient_accumulation_steps=3,
         greater_is_better=False, 
         load_best_model_at_end=True,
+        remove_unused_columns=False,
         metric_for_best_model="f1",
         logging_dir="./logs_qa",
         logging_steps=10,
