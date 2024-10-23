@@ -177,21 +177,20 @@ def tokenize_data(tokenizer, dataset):
                 if start < end_char <= end:
                     end_token = idx
                     break
+
             if start_token is None or end_token is None:
                 start_positions.append(0)
                 end_positions.append(0)
             else:
                 start_positions.append(int(start_token))
                 end_positions.append(int(end_token))
-        
-        tokenized_examples['start_positions'] = torch.tensor(start_positions, dtype=torch.long)
-        tokenized_examples['end_positions'] = torch.tensor(end_positions, dtype=torch.long)
-        tokenized_examples.pop('offset_mapping')  # Remove offset mapping as it's no longer needed
-        
-        # tokenized_examples['context'] = examples['context']
 
-        return tokenized_examples
-    
+        return {
+            'input_ids': tokenized_examples['input_ids'],
+            'attention_mask': tokenized_examples['attention_mask'],
+            'start_positions': start_positions,
+            'end_positions': end_positions,
+        }
     # Apply the tokenization to the dataset
     tokenized_dataset = dataset.map(
         tokenize_function, 
@@ -199,7 +198,11 @@ def tokenize_data(tokenizer, dataset):
         batch_size=32, 
         num_proc=8,
         keep_in_memory=True),
-
+    
+    # Ensure that the output is a Dataset object
+    if isinstance(tokenized_dataset, tuple):
+        raise ValueError("The tokenization function returned a tuple instead of a Dataset object.")
+    
     # Explicitly cast the 'start_positions' and 'end_positions' to int64
     from datasets import Value
     tokenized_dataset = tokenized_dataset.cast_column("start_positions", Value("int64"))
