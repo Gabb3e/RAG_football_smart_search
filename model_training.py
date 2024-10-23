@@ -197,7 +197,7 @@ def tokenize_data(tokenizer, dataset):
         batched=True, 
         batch_size=32, 
         num_proc=8,
-        keep_in_memory=True),
+        keep_in_memory=True)
     
     # Ensure that the output is a Dataset object
     if isinstance(tokenized_dataset, tuple):
