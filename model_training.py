@@ -87,6 +87,7 @@ def prepare_data(squad_df, players_df):
     
     # Prepare the player data in QA format
     df_players_squad = pd.read_csv(players_df)
+    df_players_squad = prepare_player_qa(df_players_squad)
     
     # Combine both datasets
     df_combined = pd.concat([df_squad, df_players_squad], ignore_index=True)
@@ -96,6 +97,13 @@ def prepare_data(squad_df, players_df):
         def find_answer_positions(row):
             context = row['context']
             answer = row['answer']
+
+            # Ensure context and answer are strings, replace NaN or None with empty strings
+            if not isinstance(context, str):
+                context = ""
+            if not isinstance(answer, str):
+                answer = ""
+
             start_pos = context.find(answer)
             if start_pos == -1:
                 # Handle cases where the answer is not found
@@ -108,6 +116,10 @@ def prepare_data(squad_df, players_df):
         positions = df_combined.apply(find_answer_positions, axis=1)
         df_combined = pd.concat([df_combined, positions], axis=1)
     
+    # Compute start and end positions
+    positions = df_combined.apply(find_answer_positions, axis=1)
+    df_combined = pd.concat([df_combined, positions], axis=1)
+
     # Split the dataset into training and evaluation sets
     train_df, eval_df = train_test_split(df_combined, test_size=0.2, random_state=42)  # 80% train, 20% eval
     train_dataset = Dataset.from_pandas(train_df)
