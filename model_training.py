@@ -117,10 +117,12 @@ def prepare_data(squad_df, players_squad_format_df):
     df_combined['context'] = df_combined['context'].fillna("").astype(str)
     df_combined['answer'] = df_combined['answer'].fillna("").astype(str)
     
-    # Compute start and end positions
-    positions = df_combined.apply(find_answer_positions, axis=1)
-    df_combined = pd.concat([df_combined, positions], axis=1)
-    
+        # Avoid adding duplicate columns
+    if 'start_positions' not in df_combined.columns or 'end_positions' not in df_combined.columns:
+        # Compute start and end positions
+        positions = df_combined.apply(find_answer_positions, axis=1)
+        df_combined = pd.concat([df_combined, positions], axis=1)
+
     # Split the dataset into training and evaluation sets
     train_df, eval_df = train_test_split(df_combined, test_size=0.2, random_state=42)  # 80% train, 20% eval
     train_dataset = Dataset.from_pandas(train_df)
