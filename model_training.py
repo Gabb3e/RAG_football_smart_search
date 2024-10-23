@@ -150,17 +150,17 @@ def tokenize_data(tokenizer, dataset):
             context = examples['context'][i]
             answer = examples['answer'][i]
             
-            # Check if context and answer are valid strings
-            if context is None or answer is None:
+            # Ensure context and answer are strings
+            if not isinstance(context, str) or not isinstance(answer, str):
                 print(f"Warning: Skipping example with missing context or answer: {examples['context'][i]} or {examples['answer'][i]}")
                 start_positions.append(0)  # or some default value
                 end_positions.append(0)    # or some default value
                 continue
+
             # Try to find the answer's position in the context
             start_char = context.find(answer)
             if start_char == -1:
                 print(f"Warning: Missing start or end position for context: {examples['context'][i]}")
-                # If the answer is not found, skip this example
                 start_positions.append(0)  # or some default value
                 end_positions.append(0)    # or some default value
                 continue
@@ -169,22 +169,26 @@ def tokenize_data(tokenizer, dataset):
 
             # Find the start and end token indices
             offset = tokenized_examples['offset_mapping'][i]
-            start_token = 0
-            end_token = 0
+            start_token = None
+            end_token = None
             for idx, (start, end) in enumerate(offset):
                 if start <= start_char < end:
                     start_token = idx
                 if start < end_char <= end:
                     end_token = idx
                     break
-            start_positions.append(int(start_token))
-            end_positions.append(int(end_token))
+            if start_token is None or end_token is None:
+                start_positions.append(0)
+                end_positions.append(0)
+            else:
+                start_positions.append(int(start_token))
+                end_positions.append(int(end_token))
         
         tokenized_examples['start_positions'] = torch.tensor(start_positions, dtype=torch.long)
         tokenized_examples['end_positions'] = torch.tensor(end_positions, dtype=torch.long)
         tokenized_examples.pop('offset_mapping')  # Remove offset mapping as it's no longer needed
         
-        tokenized_examples['context'] = examples['context']
+        # tokenized_examples['context'] = examples['context']
 
         return tokenized_examples
     
