@@ -231,7 +231,7 @@ def train_model(model, tokenizer, train_dataset, eval_dataset):
         greater_is_better=False, 
         load_best_model_at_end=True,
         remove_unused_columns=False,
-        metric_for_best_model="eval_f1",
+        metric_for_best_model="eval_loss",
         logging_dir="./logs_qa",
         logging_steps=50,
         report_to="none",
