@@ -154,6 +154,8 @@ def compute_metrics(eval_pred):
     exact_match = metric_exact_match.compute(predictions=decoded_preds, references=decoded_labels)
     f1 = metric_f1.compute(predictions=decoded_preds, references=decoded_labels)
 
+    print(f"Exact Match: {exact_match['exact_match']}, F1 Score: {f1['f1']}")
+
     return {
         "eval_exact_match": exact_match['exact_match'],  # Prefix with 'eval_'
         "eval_f1": f1['f1']  # Prefix with 'eval_'
@@ -248,17 +250,18 @@ def train_model(model, tokenizer, train_dataset, eval_dataset):
         output_dir="./results_squad",
         eval_strategy="epoch",
         save_strategy="epoch",  
-        learning_rate=2e-5,
+        learning_rate=1e-5,
         per_device_train_batch_size=4,
         per_device_eval_batch_size=4,
         gradient_accumulation_steps=3,
         dataloader_num_workers=8,
-        num_train_epochs=1,
+        num_train_epochs=3,
         weight_decay=0.01,
+        max_grad_norm=1.0,
         save_total_limit=2,
         save_steps=500,
         fp16=True,
-        greater_is_better=False, 
+        greater_is_better=True, 
         load_best_model_at_end=True,
         remove_unused_columns=False,
         metric_for_best_model="eval_f1",
@@ -282,6 +285,10 @@ def train_model(model, tokenizer, train_dataset, eval_dataset):
     # Save the fine-tuned model for future use
     model.save_pretrained("./fine_tuned_bert")
     tokenizer.save_pretrained("./fine_tuned_bert")
+
+    # Print the evaluation results at the end of training
+    eval_results = trainer.evaluate()
+    print(f"Evaluation Results: {eval_results}")
 
 # Main execution function
 def main():
