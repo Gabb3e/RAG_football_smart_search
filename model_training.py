@@ -244,6 +244,12 @@ def tokenize_data(tokenizer, dataset):
     
     return tokenized_dataset
 
+class LoggingTrainer(Trainer):
+    def log(self, logs: dict):
+        super().log(logs)
+        if "eval_loss" in logs or "eval_f1" in logs:
+            print(f"Logged Evaluation Metrics: {logs}")  # Ensure 'eval_f1' is logged
+
 def train_model(model, tokenizer, train_dataset, eval_dataset):
     # Define training arguments
     training_args = TrainingArguments(
@@ -271,7 +277,7 @@ def train_model(model, tokenizer, train_dataset, eval_dataset):
     )
 
     # Set up the Trainer
-    trainer = Trainer(
+    trainer = LoggingTrainer(
         model=model,
         args=training_args,
         train_dataset=train_dataset,

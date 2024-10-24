@@ -16,7 +16,7 @@ def main(device):
 
     # Prepare the data for training
     train_dataset, eval_dataset = prepare_data('csv/simple_squad.csv', 'csv/players_squad_format.csv')
-
+    
     # Tokenize the data
     tokenized_train_dataset = tokenize_data(tokenizer, train_dataset)
     tokenized_eval_dataset = tokenize_data(tokenizer, eval_dataset)
