@@ -155,8 +155,8 @@ def compute_metrics(eval_pred):
     f1 = metric_f1.compute(predictions=decoded_preds, references=decoded_labels)
 
     return {
-        "exact_match": exact_match['exact_match'],
-        "f1": f1['f1']
+        "eval_exact_match": exact_match['exact_match'],  # Prefix with 'eval_'
+        "eval_f1": f1['f1']  # Prefix with 'eval_'
     }
 
 # Tokenize the inputs and outputs
@@ -261,7 +261,7 @@ def train_model(model, tokenizer, train_dataset, eval_dataset):
         greater_is_better=False, 
         load_best_model_at_end=True,
         remove_unused_columns=False,
-        metric_for_best_model="f1",
+        metric_for_best_model="eval_f1",
         logging_dir="./logs_qa",
         logging_steps=50,
         report_to="none",
