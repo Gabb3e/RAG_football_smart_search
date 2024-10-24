@@ -129,6 +129,36 @@ def prepare_data(squad_df, players_squad_format_df):
     
     return train_dataset, eval_dataset
 
+# Custom compute_metrics function
+def compute_metrics(eval_pred):
+    start_preds, end_preds = eval_pred.predictions
+    start_labels, end_labels = eval_pred.label_ids
+
+    # Convert start and end predictions to max indices
+    start_preds = start_preds.argmax(axis=1)
+    end_preds = end_preds.argmax(axis=1)
+
+    # Initialize lists for decoded predictions and labels
+    decoded_preds = []
+    decoded_labels = []
+
+    for i in range(len(start_preds)):
+        # Create an answer span using the predicted start and end
+        pred_answer = f"{start_preds[i]}-{end_preds[i]}"
+        true_answer = f"{start_labels[i]}-{end_labels[i]}"
+        
+        decoded_preds.append(pred_answer)
+        decoded_labels.append(true_answer)
+
+    # Compute Exact Match and F1 scores
+    exact_match = metric_exact_match.compute(predictions=decoded_preds, references=decoded_labels)
+    f1 = metric_f1.compute(predictions=decoded_preds, references=decoded_labels)
+
+    return {
+        "exact_match": exact_match['exact_match'],
+        "f1": f1['f1']
+    }
+
 # Tokenize the inputs and outputs
 def tokenize_data(tokenizer, dataset):
     def tokenize_function(examples):
@@ -231,7 +261,7 @@ def train_model(model, tokenizer, train_dataset, eval_dataset):
         greater_is_better=False, 
         load_best_model_at_end=True,
         remove_unused_columns=False,
-        metric_for_best_model="eval_loss",
+        metric_for_best_model="f1",
         logging_dir="./logs_qa",
         logging_steps=50,
         report_to="none",
@@ -244,7 +274,7 @@ def train_model(model, tokenizer, train_dataset, eval_dataset):
         train_dataset=train_dataset,
         eval_dataset=eval_dataset,
         callbacks=[EarlyStoppingCallback(early_stopping_patience=4)],
-        compute_metrics=lambda eval_pred: compute_metrics(eval_pred, eval_dataset)
+        compute_metrics=compute_metrics
     )
     # Start the fine-tuning
     trainer.train()
@@ -252,42 +282,6 @@ def train_model(model, tokenizer, train_dataset, eval_dataset):
     # Save the fine-tuned model for future use
     model.save_pretrained("./fine_tuned_bert")
     tokenizer.save_pretrained("./fine_tuned_bert")
-
-# Custom compute_metrics function
-def compute_metrics(eval_pred, eval_dataset):
-    predictions, labels = eval_pred.predictions, eval_pred.label_ids
-    start_preds, end_preds = predictions
-
-    # Unpack the labels
-    start_labels, end_labels = labels
-
-    # Convert predictions to start and end indices
-    start_preds = start_preds.argmax(axis=1)
-    end_preds = end_preds.argmax(axis=1)
-
-    # Initialize lists for decoded predictions and labels
-    decoded_preds = []
-    decoded_labels = []
-
-    for i in range(len(start_preds)):
-        start = start_preds[i]
-        end = end_preds[i]
-        context = eval_dataset['context'][i]
-        if start < len(context) and end < len(context):
-            answer = context[start:end]
-        else:
-            answer = ""
-        decoded_preds.append(answer)
-        decoded_labels.append(eval_dataset[i]['answer'])
-
-    # Compute exact match and F1 scores
-    exact_match = metric_exact_match.compute(predictions=decoded_preds, references=decoded_labels)
-    f1 = metric_f1.compute(predictions=decoded_preds, references=decoded_labels)
-
-    return {
-        "exact_match": exact_match['exact_match'],
-        "f1": f1['f1']
-    }
 
 # Main execution function
 def main():
